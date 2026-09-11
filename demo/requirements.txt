@@ -1,0 +1,5 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+depthcat[ffmpeg] @ git+https://github.com/maosika-ai/depthcat@v0.2.0
+gradio>=4.0
