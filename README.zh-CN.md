@@ -11,7 +11,7 @@
 <img src="https://img.shields.io/badge/%E8%BF%90%E8%A1%8C%E4%BA%8E-CUDA%20%C2%B7%20Apple%20Silicon%20%C2%B7%20CPU-555" alt="platforms">
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="docs/USAGE.zh-CN.md">使用手册</a> · <a href="https://huggingface.co/spaces/netbee/depthcat">Hugging Face</a> · <a href="CHANGELOG.md">更新日志</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="docs/USAGE.zh-CN.md">使用手册</a> · <a href="https://huggingface.co/spaces/maosika/depthcat">Hugging Face</a> · <a href="CHANGELOG.md">更新日志</a></p>
 
 ---
 
