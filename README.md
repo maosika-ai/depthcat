@@ -11,7 +11,7 @@
 <img src="https://img.shields.io/badge/runs%20on-CUDA%20%C2%B7%20Apple%20Silicon%20%C2%B7%20CPU-555" alt="platforms">
 </p>
 
-<p align="center"><a href="README.zh-CN.md">中文</a> · <a href="docs/USAGE.md">User guide</a> · <a href="CHANGELOG.md">Changelog</a></p>
+<p align="center"><a href="README.zh-CN.md">中文</a> · <a href="docs/USAGE.md">User guide</a> · <a href="https://huggingface.co/spaces/netbee/depthcat">Hugging Face</a> · <a href="CHANGELOG.md">Changelog</a></p>
 
 ---
 
@@ -114,7 +114,7 @@ depthcat's own code is Apache-2.0. The model code from
 - `--people-only`: keep person silhouettes, flatten the background (SAM 2)
 - `--also pose,canny,normal`: the other MiniMax H3 Fun ControlNet inputs from one pass
 - Docker image, PyPI package, ComfyUI example workflow
-- Hugging Face Space demo
+- Runnable Hugging Face Space (the current one is a landing page; a compute Space needs a paid plan)
 
 ## Contributing
 

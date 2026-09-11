@@ -11,7 +11,7 @@
 <img src="https://img.shields.io/badge/%E8%BF%90%E8%A1%8C%E4%BA%8E-CUDA%20%C2%B7%20Apple%20Silicon%20%C2%B7%20CPU-555" alt="platforms">
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="docs/USAGE.zh-CN.md">使用手册</a> · <a href="CHANGELOG.md">更新日志</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="docs/USAGE.zh-CN.md">使用手册</a> · <a href="https://huggingface.co/spaces/netbee/depthcat">Hugging Face</a> · <a href="CHANGELOG.md">更新日志</a></p>
 
 ---
 
@@ -110,7 +110,7 @@ depthcat 自身代码 Apache-2.0。模型代码来自
 - `--people-only`：只留人物剪影、背景抹平（SAM 2）
 - `--also pose,canny,normal`：一遍出 MiniMax H3 Fun ControlNet 的其余输入
 - Docker 镜像、PyPI 包、ComfyUI 示例工作流
-- Hugging Face Space 在线试用
+- 可在线运行的 Hugging Face Space（现在是静态介绍页；能跑计算的 Space 需要付费档）
 
 ## 参与
 
