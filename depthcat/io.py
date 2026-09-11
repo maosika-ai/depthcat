@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 import cv2
 import numpy as np
@@ -90,11 +90,13 @@ def ffmpeg_binary() -> str:
 
         return imageio_ffmpeg.get_ffmpeg_exe()
     except Exception as exc:  # pragma: no cover - environment dependent
-        raise RuntimeError("ffmpeg not found; install ffmpeg or `pip install imageio-ffmpeg`") from exc
+        from .errors import ToolMissingError
+
+        raise ToolMissingError("ffmpeg not found; install ffmpeg or `pip install imageio-ffmpeg`") from exc
 
 
 def write_gray_video(
-    gray: "np.ndarray | Iterable[np.ndarray]",
+    gray: np.ndarray | Iterable[np.ndarray],
     path: str | Path,
     fps: float,
     *,
@@ -126,13 +128,35 @@ def write_gray_video(
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     cmd = [
-        ffmpeg_binary(), "-y", "-loglevel", "error",
-        "-f", "rawvideo", "-pix_fmt", "gray", "-s", f"{w}x{h}", "-r", f"{fps:.6f}", "-i", "-",
+        ffmpeg_binary(),
+        "-y",
+        "-loglevel",
+        "error",
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "gray",
+        "-s",
+        f"{w}x{h}",
+        "-r",
+        f"{fps:.6f}",
+        "-i",
+        "-",
         "-an",
-        "-c:v", "libx264", "-preset", "slow", "-crf", str(crf),
-        "-pix_fmt", "yuv420p", "-profile:v", "high",
-        "-g", str(max(1, int(round(fps * keyint_seconds)))),
-        "-movflags", "+faststart",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "slow",
+        "-crf",
+        str(crf),
+        "-pix_fmt",
+        "yuv420p",
+        "-profile:v",
+        "high",
+        "-g",
+        str(max(1, round(fps * keyint_seconds))),
+        "-movflags",
+        "+faststart",
         str(path),
     ]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)

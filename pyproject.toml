@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "depthcat"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Turn any video into a depth blockout video for video-generation ControlNets (MiniMax H3, Wan VACE, ...)."
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -37,12 +37,20 @@ depthcat = "depthcat.cli:main"
 [project.urls]
 Homepage = "https://github.com/maosika-ai/depthcat"
 
+[tool.setuptools.dynamic]
+version = { attr = "depthcat._version.__version__" }
+
 [tool.setuptools.packages.find]
 include = ["depthcat*"]
 
 [tool.setuptools.package-data]
 "depthcat.third_party.video_depth_anything" = ["LICENSE"]
+"depthcat" = ["py.typed"]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 extend-exclude = ["depthcat/third_party"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "N", "RUF"]
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]  # E501: formatter; RUF00x: unicode ×→ in comments is intentional

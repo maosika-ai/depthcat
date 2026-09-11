@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 — 2026-09-11
+- One pipeline: `depthcat.run(RunConfig)` is the single code path for the CLI and the Python API.
+- Backend registry (`vda`, `fake`); `--backend fake` runs the whole pipeline without a model.
+- Typed errors with exit codes (2 input · 3 RAM budget · 4 ffmpeg · 5 weights) and concrete fixes in the message.
+- `RunConfig` validates arguments before any work; `plan()` exposes what a run will do.
+- Metrics JSON now records the full config and plan.
+- Lint (ruff) in CI; 28 tests without a model plus a real-model CPU smoke job.
+
 ## 0.1.0 — 2026-09-11
 - First release: `depthcat in.mp4 -o out.mp4` on Video Depth Anything Small (Apache-2.0).
 - Depth estimated at model resolution, whole-clip normalisation, near = white, x264 CRF 12.

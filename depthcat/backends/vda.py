@@ -18,7 +18,6 @@ prints a warning and sets ``info.commercial_ok = False``; the CLI surfaces this.
 from __future__ import annotations
 
 import logging
-import os
 import warnings
 
 import numpy as np
@@ -65,12 +64,15 @@ def _weights_path(variant: str, checkpoint: str | None) -> str:
 class VDABackend:
     def __init__(
         self,
-        variant: str = "small",
+        model: str = "small",
         device: str = "auto",
         checkpoint: str | None = None,
     ) -> None:
+        variant = model
         if variant not in _VARIANTS:
-            raise ValueError(f"unknown variant {variant!r}; choose from {sorted(_VARIANTS)}")
+            from ..errors import BackendError
+
+            raise BackendError(f"unknown model variant {variant!r}; choose from {sorted(_VARIANTS)}")
         from ..third_party.video_depth_anything.video_depth import VideoDepthAnything
 
         self.variant = variant
@@ -90,7 +92,15 @@ class VDABackend:
                 stacklevel=2,
             )
 
-        path = _weights_path(variant, checkpoint)
+        try:
+            path = _weights_path(variant, checkpoint)
+        except Exception as exc:  # hub / network / offline-cache errors all land here
+            from ..errors import BackendError
+
+            raise BackendError(
+                f"could not obtain weights for '{variant}': {exc}. "
+                "Set HF_ENDPOINT to a mirror, or pass --checkpoint with a local .pth."
+            ) from exc
         log.info("loading %s from %s on %s (fp32=%s)", variant, path, self.device, self.fp32)
         model = VideoDepthAnything(**_VARIANTS[variant])
         model.load_state_dict(torch.load(path, map_location="cpu"), strict=True)
@@ -102,9 +112,7 @@ class VDABackend:
         # Upstream's infer_video_depth already does 32-frame windows with 10-frame overlap,
         # keyframe-based scale/shift alignment across windows and interpolation over the
         # seam. That is the temporal-consistency machinery — do not re-chunk outside it.
-        depths, _ = self.model.infer_video_depth(
-            frames, fps, input_size=input_size, device=self.device, fp32=self.fp32
-        )
+        depths, _ = self.model.infer_video_depth(frames, fps, input_size=input_size, device=self.device, fp32=self.fp32)
         return np.asarray(depths, dtype=np.float32)
 
 

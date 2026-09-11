@@ -15,8 +15,8 @@ import numpy as np
 @dataclass(frozen=True)
 class Target:
     key: str
-    fps: float | None          # None = keep source fps
-    multiple: int              # frame size rounded down to a multiple of this
+    fps: float | None  # None = keep source fps
+    multiple: int  # frame size rounded down to a multiple of this
     max_seconds: float | None  # warn beyond this
     note: str
 
@@ -40,6 +40,6 @@ def center_crop(frames: np.ndarray, h: int, w: int) -> np.ndarray:
 
     Crop, not pad: a padded black border reads to the generator as a far wall.
     """
-    H, W = frames.shape[1], frames.shape[2]
-    top, left = (H - h) // 2, (W - w) // 2
+    src_h, src_w = frames.shape[1], frames.shape[2]
+    top, left = (src_h - h) // 2, (src_w - w) // 2
     return frames[:, top : top + h, left : left + w]

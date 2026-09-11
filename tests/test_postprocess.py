@@ -14,12 +14,12 @@ def test_global_normalisation_not_per_frame():
     d[0] = np.linspace(0, 1, 16).reshape(4, 4)
     d[1] = np.linspace(0, 10, 16).reshape(4, 4)
     g = to_gray(d)
-    assert g[0].max() <= 26          # 1/10 of 255
+    assert g[0].max() <= 26  # 1/10 of 255
     assert g[1].max() == 255
 
 
 def test_near_is_white_by_default_and_invert_flips():
-    d = np.array([[[0.0, 5.0]]], np.float32)   # larger = closer (VDA convention)
+    d = np.array([[[0.0, 5.0]]], np.float32)  # larger = closer (VDA convention)
     assert to_gray(d)[0, 0].tolist() == [0, 255]
     assert to_gray(d, invert=True)[0, 0].tolist() == [255, 0]
 
@@ -42,8 +42,10 @@ def test_to_gray_rejects_wrong_rank():
         to_gray(np.zeros((2, 2), np.float32))
 
 
-@pytest.mark.parametrize("h,w,m,exp", [(1280, 736, 32, (1280, 736)), (1080, 1920, 32, (1056, 1920)),
-                                       (7, 9, 2, (6, 8)), (10, 10, 32, (32, 32))])
+@pytest.mark.parametrize(
+    "h,w,m,exp",
+    [(1280, 736, 32, (1280, 736)), (1080, 1920, 32, (1056, 1920)), (7, 9, 2, (6, 8)), (10, 10, 32, (32, 32))],
+)
 def test_fit_dimensions_rounds_down_to_multiple(h, w, m, exp):
     assert fit_dimensions(h, w, m) == exp
 

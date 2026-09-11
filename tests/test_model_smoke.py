@@ -1,6 +1,6 @@
 """End-to-end with the real Small model on CPU. Opt-in (downloads 111 MB):
 
-    RUN_MODEL_TESTS=1 pytest tests/test_model_smoke.py
+RUN_MODEL_TESTS=1 pytest tests/test_model_smoke.py
 """
 
 import os

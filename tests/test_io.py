@@ -6,6 +6,7 @@ import pytest
 
 from depthcat.io import read_video, write_gray_video
 
+
 def _has_ffmpeg():
     try:
         from depthcat.io import ffmpeg_binary
