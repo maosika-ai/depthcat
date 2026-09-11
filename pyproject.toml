@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "video2blockout"
+version = "0.1.0"
+description = "Turn any video into a depth blockout video for video-generation ControlNets (MiniMax H3, Wan VACE, ...)."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+authors = [{ name = "Maoska" }]
+keywords = ["video", "depth", "controlnet", "video-generation", "blockout", "depth-anything"]
+classifiers = [
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Multimedia :: Video",
+]
+dependencies = [
+  "torch>=2.1",
+  "numpy>=1.24",
+  "opencv-python-headless>=4.8",
+  "einops>=0.4",
+  "easydict",
+  "tqdm",
+  "huggingface_hub>=0.20",
+]
+
+[project.optional-dependencies]
+ffmpeg = ["imageio-ffmpeg>=0.4.7"]   # bundled ffmpeg if none on PATH
+dev = ["pytest>=8", "ruff"]
+
+[project.scripts]
+video2blockout = "video2blockout.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/maosika-ai/video2blockout"
+
+[tool.setuptools.packages.find]
+include = ["video2blockout*"]
+
+[tool.setuptools.package-data]
+"video2blockout.third_party.video_depth_anything" = ["LICENSE"]
+
+[tool.ruff]
+line-length = 110
+extend-exclude = ["video2blockout/third_party"]
