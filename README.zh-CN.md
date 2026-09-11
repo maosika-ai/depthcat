@@ -1,100 +1,119 @@
-# depthcat
+<p align="center"><img src="docs/demo.gif" width="560" alt="左：原片；右：depthcat 抽出的深度白模"></p>
 
-[![ci](https://github.com/maosika-ai/depthcat/actions/workflows/ci.yml/badge.svg)](https://github.com/maosika-ai/depthcat/actions/workflows/ci.yml) [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+<h1 align="center">depthcat</h1>
 
-把任意视频抽成**深度白模视频**——近白远黑的灰度片，喂给视频生成模型的 ControlNet
-（MiniMax H3 Fun ControlNet、Wan VACE……），只复制参考片的**走位与镜头**，不带走人脸、
-服装和画风。就是 LibTV「深度动作捕捉」那种输出。
+<p align="center"><b>把任意视频抽成深度白模——让视频模型复制一段参考片的走位和运镜，却不带走它的人脸、服装和画风。</b></p>
 
-<p align="center"><img src="docs/demo.gif" width="560" alt="左：原片；右：深度白模"></p>
+<p align="center">
+<a href="https://github.com/maosika-ai/depthcat/actions/workflows/ci.yml"><img src="https://github.com/maosika-ai/depthcat/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="Apache-2.0"></a>
+<img src="https://img.shields.io/badge/python-3.10%20%7C%203.12-blue" alt="python">
+<img src="https://img.shields.io/badge/%E8%BF%90%E8%A1%8C%E4%BA%8E-CUDA%20%C2%B7%20Apple%20Silicon%20%C2%B7%20CPU-555" alt="platforms">
+</p>
 
-一条命令，一个 Apache-2.0 的模型（111 MB），8G 显卡或 Apple M 系列芯片都能跑。
+<p align="center"><a href="README.md">English</a> · <a href="docs/USAGE.zh-CN.md">使用手册</a> · <a href="CHANGELOG.md">更新日志</a></p>
+
+---
+
+```bash
+pip install git+https://github.com/maosika-ai/depthcat
+depthcat 参考片.mp4 -o 白模.mp4 --target h3
+```
+
+整个流程就这两行。把 `白模.mp4` 连同你自己的提示词一起交给带深度控制的视频模型
+（MiniMax H3 Fun ControlNet、Wan VACE……），生成出来的片子**走位和镜头跟参考片**，
+**长相和画风全听你的提示词**。就是 LibTV「深度动作捕捉」那种输出，但你自己掌握、可商用。
+
+## 为什么是深度白模
+
+一段参考视频里有两种信息：**怎么拍的**（谁站哪、多大、怎么动、镜头怎么动）和
+**长什么样**（人脸、衣服、光线、风格）。深度图只保留前者、丢掉后者。所以它是
+
+- **最干净的控制信号**——"按这段参考片的拍法拍我的剧本"
+- **一层合规隔离**——人脸、服装、品牌一样都不会从参考片带出来
+- **模型无关**——所有深度 ControlNet 训练时吃的就是这种图
+
+depthcat 负责把这个信号做对、做稳，把那些"随手跑一下深度模型"必然踩的坑提前处理掉。
+
+## 做对了什么
+
+| | depthcat | 常见的"逐帧跑深度模型"脚本 |
+|---|---|---|
+| 时序一致性 | 原生视频模型（32 帧窗口、重叠、跨窗口对齐） | 闪烁 |
+| 归一化 | 整段视频只做一次 | 逐帧 → 静止的墙在"呼吸" |
+| 分辨率 | 按模型分辨率推理，8 位结果逐帧放大 | 每帧存全分辨率浮点深度 → 8–20 GB 内存 |
+| 帧率 | 按时间戳选帧（30→24 真的是 24） | 整数步长 → 还是 30 |
+| 输出尺寸 | 裁到生成模型要的倍数（H3 是 32） | 补黑边 → 模型当成一堵墙 |
+| 编码 | x264 CRF 12，2 秒一个关键帧 | 默认 CRF → 色带 → 出片抖动 |
+| 许可 | 默认 Apache-2.0 权重，非商用权重需显式指定并警告 | 硬盘上有啥用啥 |
+| 安全 | 跑前估内存，超预算拒跑并给出 `--max-frames` 建议 | 把机器交换到死 |
 
 ## 安装
 
 ```bash
-pip install git+https://github.com/maosika-ai/depthcat
-# 需要 PATH 里有 ffmpeg（或 pip install "depthcat[ffmpeg]"）
+pip install git+https://github.com/maosika-ai/depthcat      # 需要 PATH 里有 ffmpeg
+pip install "depthcat[ffmpeg] @ git+https://github.com/maosika-ai/depthcat"   # 自带 ffmpeg 二进制
 ```
 
-首次运行自动从 Hugging Face 下载权重。国内请设置 `HF_ENDPOINT=https://hf-mirror.com`。
+首次运行自动下载权重（111 MB，Apache-2.0）。国内：`export HF_ENDPOINT=https://hf-mirror.com`。
 
 ## 用法
 
 ```bash
-depthcat in.mp4 -o blockout.mp4                 # 保持原 fps / 尺寸，近白远黑
-depthcat in.mp4 -o blockout.mp4 --target h3     # MiniMax H3：24fps、边长 32 的倍数、≤15 秒
-depthcat in.mp4 -o blockout.mp4 --npz depth.npz # 同时保存原始浮点深度
+depthcat in.mp4 -o out.mp4                    # 保持原 fps / 尺寸，近白远黑
+depthcat in.mp4 -o out.mp4 --target h3        # MiniMax H3 ControlNet：24 fps、边长 32 的倍数、≤15 秒
+depthcat in.mp4 -o out.mp4 --npz d.npz --metrics run.json
 ```
 
 ```python
-from depthcat import extract, to_gray, write_gray_video
-depths, fps = extract("in.mp4")                 # float32 [T, H, W]，越大越近
-write_gray_video(to_gray(depths), "out.mp4", fps)
+from pathlib import Path
+from depthcat import RunConfig, run
+
+result = run(RunConfig(input=Path("in.mp4"), output=Path("out.mp4"), target="h3"))
+print(result.ms_per_frame, result.peak_rss_bytes)
 ```
 
-| 参数 | 默认 | 作用 |
-|---|---|---|
-| `--model small\|base\|large` | `small` | 只有 `small` 是 Apache-2.0；`base`/`large` 是 CC-BY-NC，加载时会警告 |
-| `--target none\|h3\|wan` | `none` | 按目标模型设 fps 与尺寸（见下表） |
-| `--fps N` | 原片 | 按**时间戳**选帧，30→24 真的是 24，不是整数步长那种假 24 |
-| `--max-res N` | 1280 | 推理前把长边压到 N；输出也是这个尺寸 |
-| `--invert` | 关 | 改成远白近黑 |
-| `--clip PCT` | 0 | 两端各裁掉 PCT% 再归一，防一个热点像素把整段压暗 |
-| `--gamma G` | 1.0 | >1 压暗中间调（近处层次更开） |
-| `--crf N` | 12 | x264 质量。故意给高：控制视频里的色带会变成出片里的抖动 |
-| `--npz PATH` | – | 保存原始深度，留给自己后处理 |
+全部参数、预设、退出码和实战配方：**[docs/USAGE.zh-CN.md](docs/USAGE.zh-CN.md)**。
 
-### 目标预设
+## 目标预设
 
-| `--target` | fps | 尺寸 | 时长上限 | 对应 |
+| `--target` | fps | 尺寸 | 上限 | 对应 |
 |---|---|---|---|---|
 | `none` | 原片 | 偶数 | – | 通用 |
-| `h3` | 24 | 32 的倍数（居中裁） | 15 秒 | [MiniMax-H3-Fun-Controlnet-Union](https://huggingface.co/alibaba-pai/MiniMax-H3-Fun-Controlnet-Union) 深度输入 |
-| `wan` | 16 | 16 的倍数 | – | Wan 2.1 VACE 控制视频 |
+| `h3` | 24 | 32 的倍数 | 15 秒 | [MiniMax-H3-Fun-Controlnet-Union](https://huggingface.co/alibaba-pai/MiniMax-H3-Fun-Controlnet-Union) |
+| `wan` | 16 | 16 的倍数 | – | Wan 2.1 VACE（按文档取值，尚未端到端实测） |
 
-尺寸用裁不用补：补上去的黑边在生成模型眼里是一堵远墙。
+## 实测性能（Small 模型，294 帧 @ 736×1280）
 
-## 做对的四个细节
-
-1. **整段视频只归一化一次，不逐帧。** 逐帧 min/max 会让静止的墙在有人走近镜头时忽明忽暗，生成模型读到的就是"场景在呼吸"。
-2. **时序一致性来自模型，不是靠模糊。** Video Depth Anything 用 32 帧窗口、10 帧重叠、跨窗口对齐尺度；我们原样调用它的推理路径，不在外面重新切段。
-3. **近处白。** 深度 ControlNet 训练时用的就是这个约定；要反过来用 `--invert`。
-4. **fps 按时间戳、尺寸靠裁剪、质量靠 CRF。** 见上表。
-
-## 实测性能（全片端到端，Small 模型，294 帧 @ 736×1280）
-
-| 设备 | 精度 | 速度 | 说明 |
+| 设备 | 精度 | ms / 帧 | 宿主内存峰值 |
 |---|---|---|---|
-| Apple M2 Max，torch 2.9.1 | fp32 | 约 500 ms/帧（12 秒片 2.7 分钟） | MPS 上 fp16 慢到不可用，已强制 fp32 |
-| Apple M2 Max，torch 2.6.0 | fp32 | 约 1700 ms/帧 | 慢 3.5 倍——**Apple 芯片请升级 torch ≥ 2.9** |
-| CPU（M2 Max） | fp32 | 约 1850 ms/帧 | 能用，慢 |
-| NVIDIA RTX 4090（AutoDL），torch 2.8 cu128 | fp16 | **70 ms/帧**，`--input-size 364` 时 31 ms | 宿主内存峰值 4.5 GB（改成模型分辨率推理前是 8.2） |
-| NVIDIA A100（官方数据） | fp16 | 约 8 ms/帧 | 32 帧批次占 6.8 GB 显存 |
+| RTX 4090，torch 2.8 cu128 | fp16 | **70**（`--input-size 364` 时 31） | 4.5 GB |
+| Apple M2 Max，torch 2.9.1 | fp32 | 约 500 | 约 4 GB |
+| Apple M2 Max，torch 2.6.0 | fp32 | 约 1700 | — |
+| CPU（M2 Max） | fp32 | 约 1850 | — |
+
+fp16 只在 CUDA 上开：MPS 上慢到不可用。Apple 芯片请把 torch 升到 ≥ 2.9。
 
 ## 模型与许可
 
 | 权重 | 许可 | 商用 |
 |---|---|---|
-| `Video-Depth-Anything-Small`（默认） | Apache-2.0 | ✅ |
-| `Video-Depth-Anything-Base` / `-Large` | CC-BY-NC-4.0 | ❌ 需显式指定，加载时警告 |
+| Video-Depth-Anything-**Small**（默认） | Apache-2.0 | ✅ |
+| Video-Depth-Anything-Base / -Large | CC-BY-NC-4.0 | ❌ 需 `--model` 显式指定，运行时警告 |
 
-代码 Apache-2.0。模型代码来自
-[DepthAnything/Video-Depth-Anything](https://github.com/DepthAnything/Video-Depth-Anything)，
-vendored 在 `depthcat/third_party/`（见 `NOTICE`）。
-
-## ComfyUI
-
-已有现成节点 [ComfyUI-Video-Depth-Anything](https://github.com/yuvraj108c/ComfyUI-Video-Depth-Anything)。
-本项目面向要 CLI / Python API、要许可证安全默认值、要目标模型预设的人。
+depthcat 自身代码 Apache-2.0。模型代码来自
+[DepthAnything/Video-Depth-Anything](https://github.com/DepthAnything/Video-Depth-Anything)
+（CVPR 2025），vendored 在 `depthcat/third_party/`，见 [NOTICE](NOTICE)。
 
 ## 路线图
 
 - `--people-only`：只留人物剪影、背景抹平（SAM 2）
-- `--also pose,canny,normal`：一遍出 MiniMax H3 Fun ControlNet 的其余几种输入
-- Depth Anything 3（逐帧 + 平滑）与 ViGeo 后端
-- Gradio 演示 / Hugging Face Space
+- `--also pose,canny,normal`：一遍出 MiniMax H3 Fun ControlNet 的其余输入
+- Docker 镜像、PyPI 包、ComfyUI 示例工作流
+- Hugging Face Space 在线试用
 
-## 致谢
+## 参与
 
-Video Depth Anything — Chen et al., CVPR 2025。由 [猫斯卡](https://www.maosika.com) 出品。
+欢迎 issue 和 PR，见 [CONTRIBUTING.md](CONTRIBUTING.md)。推之前跑 `ruff check` 和 `pytest`；CI 还会在 CPU 上真跑一遍模型。
+
+出品：[猫斯卡](https://www.maosika.com)，AI 短剧工作室。
