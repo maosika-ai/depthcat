@@ -1,8 +1,8 @@
-"""`video2blockout` command line.
+"""`depthcat` command line.
 
-    video2blockout in.mp4 -o out.mp4                # Apache-2.0 Small model, auto device
-    video2blockout in.mp4 -o out.mp4 --target h3    # 24 fps, ×32 dims, ≤15 s for MiniMax H3
-    video2blockout in.mp4 -o out.mp4 --npz depth.npz --metrics run.json
+    depthcat in.mp4 -o out.mp4                # Apache-2.0 Small model, auto device
+    depthcat in.mp4 -o out.mp4 --target h3    # 24 fps, ×32 dims, ≤15 s for MiniMax H3
+    depthcat in.mp4 -o out.mp4 --npz depth.npz --metrics run.json
 
 Memory model: depth is estimated at the model's working resolution (short side 518 px)
 and only the 8-bit result is upscaled to the output size, frame by frame while
@@ -33,7 +33,7 @@ from .targets import TARGETS, fit_dimensions
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="video2blockout",
+        prog="depthcat",
         description="Video → depth blockout video for video-generation ControlNets.",
     )
     p.add_argument("input", help="input video (anything ffmpeg/OpenCV can read)")
@@ -108,10 +108,10 @@ def main(argv: list[str] | None = None) -> int:
 
     # ── depth ───────────────────────────────────────────────────────────────────────
     device = pick_device(args.device)
-    if os.environ.get("VIDEO2BLOCKOUT_FAKE_BACKEND"):
+    if os.environ.get("DEPTHCAT_FAKE_BACKEND"):
         # Dry-run mode for exercising the whole pipeline (I/O, encoding, metrics, remote
         # runbook) without loading a model. Produces a plausible radial gradient.
-        _say("model  FAKE backend (VIDEO2BLOCKOUT_FAKE_BACKEND set) — no inference")
+        _say("model  FAKE backend (DEPTHCAT_FAKE_BACKEND set) — no inference")
         yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
         base = 1.0 / (1.0 + ((xx - w / 2) ** 2 + (yy - h / 2) ** 2) / (0.15 * w * h))
         depths = np.stack([base * (0.8 + 0.2 * i / max(1, t - 1)) for i in range(t)]).astype(np.float32)

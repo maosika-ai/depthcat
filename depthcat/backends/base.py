@@ -2,7 +2,7 @@
 
 Every backend returns *relative inverse depth* (larger = closer to camera) as float32
 `[T, H, W]` at the input frame resolution, already temporally aligned across the whole
-clip. Normalisation to 8-bit grey happens later in :mod:`video2blockout.postprocess`,
+clip. Normalisation to 8-bit grey happens later in :mod:`depthcat.postprocess`,
 so backends never decide what "white" means.
 """
 

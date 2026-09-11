@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "video2blockout"
+name = "depthcat"
 version = "0.1.0"
 description = "Turn any video into a depth blockout video for video-generation ControlNets (MiniMax H3, Wan VACE, ...)."
 readme = "README.md"
@@ -32,17 +32,17 @@ ffmpeg = ["imageio-ffmpeg>=0.4.7"]   # bundled ffmpeg if none on PATH
 dev = ["pytest>=8", "ruff"]
 
 [project.scripts]
-video2blockout = "video2blockout.cli:main"
+depthcat = "depthcat.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/maosika-ai/video2blockout"
+Homepage = "https://github.com/maosika-ai/depthcat"
 
 [tool.setuptools.packages.find]
-include = ["video2blockout*"]
+include = ["depthcat*"]
 
 [tool.setuptools.package-data]
-"video2blockout.third_party.video_depth_anything" = ["LICENSE"]
+"depthcat.third_party.video_depth_anything" = ["LICENSE"]
 
 [tool.ruff]
 line-length = 110
-extend-exclude = ["video2blockout/third_party"]
+extend-exclude = ["depthcat/third_party"]

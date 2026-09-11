@@ -1,6 +1,6 @@
-# video2blockout
+# depthcat
 
-[![ci](https://github.com/maosika-ai/video2blockout/actions/workflows/ci.yml/badge.svg)](https://github.com/maosika-ai/video2blockout/actions/workflows/ci.yml) [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![ci](https://github.com/maosika-ai/depthcat/actions/workflows/ci.yml/badge.svg)](https://github.com/maosika-ai/depthcat/actions/workflows/ci.yml) [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 Turn any video into a **depth "blockout" video** — the grey near-white / far-black
 clip that video-generation ControlNets (MiniMax H3 Fun ControlNet, Wan VACE, …) use to
@@ -16,8 +16,8 @@ One command, one model download (Apache-2.0), runs on an 8 GB GPU or an Apple M-
 ## Install
 
 ```bash
-pip install git+https://github.com/maosika-ai/video2blockout
-# needs ffmpeg on PATH (or: pip install "video2blockout[ffmpeg]")
+pip install git+https://github.com/maosika-ai/depthcat
+# needs ffmpeg on PATH (or: pip install "depthcat[ffmpeg]")
 ```
 
 Weights (111 MB) download from Hugging Face on first run. In China set
@@ -26,13 +26,13 @@ Weights (111 MB) download from Hugging Face on first run. In China set
 ## Use
 
 ```bash
-video2blockout in.mp4 -o blockout.mp4                 # keep fps/size, near = white
-video2blockout in.mp4 -o blockout.mp4 --target h3     # MiniMax H3: 24 fps, ×32 dims, ≤15 s
-video2blockout in.mp4 -o blockout.mp4 --npz depth.npz # also keep raw float depth
+depthcat in.mp4 -o blockout.mp4                 # keep fps/size, near = white
+depthcat in.mp4 -o blockout.mp4 --target h3     # MiniMax H3: 24 fps, ×32 dims, ≤15 s
+depthcat in.mp4 -o blockout.mp4 --npz depth.npz # also keep raw float depth
 ```
 
 ```python
-from video2blockout import extract, to_gray, write_gray_video
+from depthcat import extract, to_gray, write_gray_video
 depths, fps = extract("in.mp4")                 # float32 [T, H, W], larger = closer
 write_gray_video(to_gray(depths), "out.mp4", fps)
 ```
@@ -90,7 +90,7 @@ We crop rather than pad: a padded black border reads to the generator as a far w
 
 Code is Apache-2.0. The model code from
 [DepthAnything/Video-Depth-Anything](https://github.com/DepthAnything/Video-Depth-Anything)
-is vendored under `video2blockout/third_party/` (see `NOTICE`).
+is vendored under `depthcat/third_party/` (see `NOTICE`).
 
 ## ComfyUI
 

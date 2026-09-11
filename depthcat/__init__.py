@@ -1,6 +1,6 @@
-"""video2blockout — turn any video into a depth "blockout" video for video-generation control.
+"""depthcat — turn any video into a depth "blockout" video for video-generation control.
 
-    from video2blockout import extract, to_gray, write_gray_video
+    from depthcat import extract, to_gray, write_gray_video
     depths, fps = extract("in.mp4")            # float32 [T, H, W], larger = closer
     write_gray_video(to_gray(depths), "out.mp4", fps)
 """

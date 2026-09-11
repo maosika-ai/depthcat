@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from video2blockout.postprocess import to_gray
-from video2blockout.targets import TARGETS, center_crop, fit_dimensions
+from depthcat.postprocess import to_gray
+from depthcat.targets import TARGETS, center_crop, fit_dimensions
 
 
 def test_global_normalisation_not_per_frame():

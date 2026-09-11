@@ -1,10 +1,10 @@
-video2blockout
+depthcat
 Copyright 2026 Maoska
 
 This product includes software developed by Bytedance Ltd. and/or its affiliates:
 Video Depth Anything (https://github.com/DepthAnything/Video-Depth-Anything),
 licensed under the Apache License 2.0. It is vendored, unmodified except for
-two import lines, under video2blockout/third_party/video_depth_anything/.
+two import lines, under depthcat/third_party/video_depth_anything/.
 
 Model weights are downloaded at runtime from Hugging Face and carry their own licences:
   depth-anything/Video-Depth-Anything-Small  Apache-2.0     (default; commercial use OK)

@@ -1,6 +1,6 @@
 """Planning is pure arithmetic — test it without a model."""
 
-from video2blockout.planning import (
+from depthcat.planning import (
     HOST_RAM_BUDGET_RATIO,
     estimate_host_bytes,
     memory_verdict,

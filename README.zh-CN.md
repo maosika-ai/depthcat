@@ -1,6 +1,6 @@
-# video2blockout
+# depthcat
 
-[![ci](https://github.com/maosika-ai/video2blockout/actions/workflows/ci.yml/badge.svg)](https://github.com/maosika-ai/video2blockout/actions/workflows/ci.yml) [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![ci](https://github.com/maosika-ai/depthcat/actions/workflows/ci.yml/badge.svg)](https://github.com/maosika-ai/depthcat/actions/workflows/ci.yml) [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 把任意视频抽成**深度白模视频**——近白远黑的灰度片，喂给视频生成模型的 ControlNet
 （MiniMax H3 Fun ControlNet、Wan VACE……），只复制参考片的**走位与镜头**，不带走人脸、
@@ -13,8 +13,8 @@
 ## 安装
 
 ```bash
-pip install git+https://github.com/maosika-ai/video2blockout
-# 需要 PATH 里有 ffmpeg（或 pip install "video2blockout[ffmpeg]"）
+pip install git+https://github.com/maosika-ai/depthcat
+# 需要 PATH 里有 ffmpeg（或 pip install "depthcat[ffmpeg]"）
 ```
 
 首次运行自动从 Hugging Face 下载权重。国内请设置 `HF_ENDPOINT=https://hf-mirror.com`。
@@ -22,13 +22,13 @@ pip install git+https://github.com/maosika-ai/video2blockout
 ## 用法
 
 ```bash
-video2blockout in.mp4 -o blockout.mp4                 # 保持原 fps / 尺寸，近白远黑
-video2blockout in.mp4 -o blockout.mp4 --target h3     # MiniMax H3：24fps、边长 32 的倍数、≤15 秒
-video2blockout in.mp4 -o blockout.mp4 --npz depth.npz # 同时保存原始浮点深度
+depthcat in.mp4 -o blockout.mp4                 # 保持原 fps / 尺寸，近白远黑
+depthcat in.mp4 -o blockout.mp4 --target h3     # MiniMax H3：24fps、边长 32 的倍数、≤15 秒
+depthcat in.mp4 -o blockout.mp4 --npz depth.npz # 同时保存原始浮点深度
 ```
 
 ```python
-from video2blockout import extract, to_gray, write_gray_video
+from depthcat import extract, to_gray, write_gray_video
 depths, fps = extract("in.mp4")                 # float32 [T, H, W]，越大越近
 write_gray_video(to_gray(depths), "out.mp4", fps)
 ```
@@ -81,7 +81,7 @@ write_gray_video(to_gray(depths), "out.mp4", fps)
 
 代码 Apache-2.0。模型代码来自
 [DepthAnything/Video-Depth-Anything](https://github.com/DepthAnything/Video-Depth-Anything)，
-vendored 在 `video2blockout/third_party/`（见 `NOTICE`）。
+vendored 在 `depthcat/third_party/`（见 `NOTICE`）。
 
 ## ComfyUI
 
