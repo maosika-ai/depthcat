@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — 2026-09-11
+- `--target seedance`: 24 fps, frame size a multiple of 16, ≤ 15 s, and a warning when the frame
+  falls below the 407,696-pixel floor — all from the official Seedance reference-video spec.
+- `Target.min_pixels` and the matching pipeline warning.
+- README rewritten as a product page (Seedance first); Seedance recipe in the usage guide; demo default preset is now `seedance`.
+
 ## 0.2.0 — 2026-09-11
 - One pipeline: `depthcat.run(RunConfig)` is the single code path for the CLI and the Python API.
 - Backend registry (`vda`, `fake`); `--backend fake` runs the whole pipeline without a model.

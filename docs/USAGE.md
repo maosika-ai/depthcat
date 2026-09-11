@@ -48,7 +48,7 @@ depthcat INPUT -o OUTPUT [options]
 
 | option | default | notes |
 |---|---|---|
-| `--target none\|h3\|wan` | `none` | fps + frame-size preset, see [Targets](#targets). |
+| `--target none\|seedance\|h3\|wan` | `none` | fps + frame-size preset, see [Targets](#targets). |
 | `--fps N` | preset or source | Frames are chosen by timestamp, so 30 → 24 yields 24, not 30. Never upsamples. |
 | `--max-res N` | `1280` | Cap on the output's longer side. Inference always runs at model resolution regardless. |
 | `--max-frames N` | all | Stop after N source frames. |
@@ -81,6 +81,7 @@ depthcat INPUT -o OUTPUT [options]
 | `--target` | fps | frame size | max length | notes |
 |---|---|---|---|---|
 | `none` | source | even | – | |
+| `seedance` | 24 | multiple of 16 (centre crop), ≥ 407,696 px (warns) | 15 s (warns) | Seedance 2.0 / 2.5 reference video (`@视频N` motion + camera) |
 | `h3` | 24 | multiple of 32 (centre crop) | 15 s (warns) | MiniMax-H3-Fun-Controlnet-Union depth input |
 | `wan` | 16 | multiple of 16 | – | Wan 2.1 VACE control video; values from the docs, not yet verified end-to-end |
 
@@ -115,6 +116,30 @@ Errors that are the *user's* to fix are subclasses of `depthcat.DepthcatError` a
 model — handy for testing your own integration in milliseconds.
 
 ## Recipes
+
+### Seedance 2.0 / 2.5 (reference video)
+
+1. `depthcat ref.mp4 -o ref_depth.mp4 --target seedance` (24 fps, ×16, ≤ 15 s).
+2. Submit it as a **reference video** (API: `role: "reference_video"`; in the console, attach it as
+   a video reference) and address it in the prompt as `@视频1`, asking for its motion and camera:
+
+   ```
+   参考@视频1的动作与运镜。两名武者在雨夜屋顶对决，黑色劲装，冷蓝月光，电影感。
+   ```
+
+   Describe only the *look* — cast, wardrobe, lighting, style. Staging comes from the video.
+3. What the official reference-video spec asks for, and what the preset does about it:
+
+   | official requirement | preset |
+   |---|---|
+   | mp4 / mov, H.264 or H.265 | H.264 mp4, yuv420p |
+   | 24 – 60 fps | 24 fps |
+   | 2.0: 2 – 15 s per clip, ≤ 15 s total · 2.5: 2 – 30 s per clip, ≤ 30 s total | warns above 15 s |
+   | width × height ≥ 407,696 px, each side 300 – 6,000 px, aspect 0.4 – 2.5 | warns below the pixel floor — raise `--max-res` or use a larger source |
+   | ≤ 200 MB | CRF 12 keeps a 15 s 1080p clip well under |
+
+   Seedance 2.5 allows up to 30 s; pass `--fps 24` without `--target` and check the size yourself
+   if you need the longer window.
 
 ### MiniMax H3 Fun ControlNet (ComfyUI)
 

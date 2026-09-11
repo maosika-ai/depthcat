@@ -60,3 +60,8 @@ def test_center_crop_is_centred():
 def test_h3_preset_matches_published_constraints():
     t = TARGETS["h3"]
     assert (t.fps, t.multiple, t.max_seconds) == (24.0, 32, 15.0)
+
+
+def test_seedance_preset():
+    t = TARGETS["seedance"]
+    assert (t.fps, t.multiple, t.max_seconds, t.min_pixels) == (24.0, 16, 15.0, 407_696)

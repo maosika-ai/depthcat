@@ -25,7 +25,7 @@ def make_blockout(video: str | None, target: str, input_size: int, invert: bool,
         raise gr.Error("Upload a video first.")
     workdir = Path(tempfile.mkdtemp(prefix="depthcat-"))
     out = workdir / "blockout.mp4"
-    fps_cap = {"none": 24.0, "h3": None, "wan": None}[target]  # keep the free CPU honest
+    fps_cap = {"none": 24.0, "seedance": None, "h3": None, "wan": None}[target]  # keep the free CPU honest
     max_frames = int(LIMITS["max_seconds"] * 24)
     cfg = RunConfig(
         input=Path(video),
@@ -56,7 +56,7 @@ with gr.Blocks(title="depthcat") as demo:
     gr.Markdown(
         f"""
 # depthcat
-**Video → depth blockout** for video-generation ControlNets (MiniMax H3 Fun, Wan VACE, …).
+**Video → depth blockout** for video generation: Seedance reference video, MiniMax H3 Fun ControlNet, Wan VACE, ….
 Keeps a shot's staging and camera, drops faces, wardrobe and style.
 Code and CLI: [github.com/maosika-ai/depthcat](https://github.com/maosika-ai/depthcat) · Apache-2.0
 
@@ -68,10 +68,10 @@ Expect 1–3 minutes. For full clips and GPU speed, run it locally: `pip install
         with gr.Column():
             src = gr.Video(label="Reference video", sources=["upload"])
             target = gr.Radio(
-                ["h3", "none", "wan"],
-                value="h3",
+                ["seedance", "h3", "wan", "none"],
+                value="seedance",
                 label="Target preset",
-                info="h3 = 24 fps, ×32 (MiniMax H3 Fun ControlNet)",
+                info="seedance = 24 fps, ×16 (Seedance 2.0/2.5 reference video); h3 = 24 fps, ×32 (MiniMax H3 Fun ControlNet)",
             )
             with gr.Accordion("Advanced", open=False):
                 input_size = gr.Radio(
