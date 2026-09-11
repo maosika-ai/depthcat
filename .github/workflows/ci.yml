@@ -18,7 +18,7 @@ jobs:
       - name: Install (CPU torch)
         run: |
           python -m pip install -U pip
-          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
           python -m pip install -e ".[ffmpeg,dev]"
       - run: python -m pytest -q tests
 
@@ -35,6 +35,6 @@ jobs:
           key: hf-vda-small-v1
       - run: |
           python -m pip install -U pip
-          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
           python -m pip install -e ".[ffmpeg,dev]"
       - run: RUN_MODEL_TESTS=1 python -m pytest -q tests/test_model_smoke.py -s
