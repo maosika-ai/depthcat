@@ -180,8 +180,11 @@ def run(cfg: RunConfig, reporter: Reporter | None = None) -> RunResult:
     if (p.out_h, p.out_w) != (h, w):
         rep.step("size", f"{w}x{h} → {p.out_w}x{p.out_h} (multiple of {target.multiple})")
     if target.min_pixels and p.out_w * p.out_h < target.min_pixels:
-        rep.step("warn", f"{p.out_w}x{p.out_h} is below {target.key}'s minimum of {target.min_pixels:,} pixels "
-                         "— the API will reject it; use a larger source or raise --max-res")
+        rep.step(
+            "warn",
+            f"{p.out_w}x{p.out_h} is below {target.key}'s minimum of {target.min_pixels:,} pixels "
+            "— the API will reject it; use a larger source or raise --max-res",
+        )
     out = write_gray_video(
         upsample_frames(gray, p.out_h, p.out_w), cfg.output, fps, crf=cfg.crf, size=(p.out_h, p.out_w)
     )

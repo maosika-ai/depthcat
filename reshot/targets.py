@@ -28,8 +28,9 @@ TARGETS: dict[str, Target] = {
     # the official parameter page: mp4 H.264, fps 24–60, per-clip 2–15 s on 2.0 (2–30 s on
     # 2.5), aspect 0.4–2.5, side 300–6000 px, total pixels ≥ 407,696, file ≤ 200 MB.
     # The depth map goes in as @视频N and the prompt asks for its motion and camera.
-    "seedance": Target("seedance", 24.0, 16, 15.0,
-                       "Seedance 2.0/2.5 reference video (@视频N: motion + camera)", min_pixels=407_696),
+    "seedance": Target(
+        "seedance", 24.0, 16, 15.0, "Seedance 2.0/2.5 reference video (@视频N: motion + camera)", min_pixels=407_696
+    ),
     # MiniMax-H3-Fun-Controlnet-Union: 24 fps fixed, H/W multiples of 32, ≤15 s.
     "h3": Target("h3", 24.0, 32, 15.0, "MiniMax H3 Fun ControlNet (depth/pose/canny/hed/mlsd)"),
     # Wan 2.1 VACE control videos: 16 fps, H/W multiples of 16.
