@@ -43,6 +43,18 @@ pip install reshot        # needs ffmpeg on PATH
 
 No ffmpeg? `pip install "reshot[ffmpeg]"` bundles one. No Python set up at all? [uv](https://docs.astral.sh/uv/) does everything in one line: `uvx --from "reshot[ffmpeg]" reshot reference.mp4 -o depth.mp4 --target seedance`. The model weights (111 MB) download on first run.
 
+### Or let your AI coding tool do it
+
+Using Claude Code, Codex, Cursor or any other AI agent? Paste this and it will install, verify the GPU, and run a test clip for you:
+
+```
+Install ReShot (the "reshot" package on PyPI) on this machine and get it working.
+Read https://raw.githubusercontent.com/maosika-ai/reshot/main/docs/AGENT_INSTALL.md and follow it step by step:
+detect the OS and GPU, install the right PyTorch build first, then `pip install "reshot[ffmpeg]"`,
+set HF_ENDPOINT=https://hf-mirror.com if I'm in China, run the fake-backend smoke test, then a real run
+on a short clip with --metrics and show me the numbers. Don't say it's done until depth.mp4 exists.
+```
+
 ### 2. Make the depth map
 
 ```bash

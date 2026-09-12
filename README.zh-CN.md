@@ -43,6 +43,18 @@ pip install reshot        # 需要 PATH 里有 ffmpeg
 
 没有 ffmpeg 就装 `pip install "reshot[ffmpeg]"`，自带一个。连 Python 都没配？用 [uv](https://docs.astral.sh/uv/) 一行搞定：`uvx --from "reshot[ffmpeg]" reshot 参考片.mp4 -o 深度图.mp4 --target seedance`。模型权重 111 MB，首次运行自动下载；国内先 `export HF_ENDPOINT=https://hf-mirror.com`。
 
+### 或者让你的 AI 编程工具来装
+
+用 Claude Code、Codex、Cursor 之类的 AI 工具？把下面这段粘给它，它会替你装好、验显卡、跑一段测试片：
+
+```
+在这台机器上安装 ReShot（PyPI 上的 "reshot" 包）并跑通。
+先读 https://raw.githubusercontent.com/maosika-ai/reshot/main/docs/AGENT_INSTALL.md，按它一步步做：
+识别系统和显卡，先装对应的 PyTorch，再 pip install "reshot[ffmpeg]"；
+我在中国大陆，先设 HF_ENDPOINT=https://hf-mirror.com；跑一次假后端冒烟测试，再用一段短片真跑一次并加 --metrics，把数字给我看。
+depth.mp4 没生成出来之前不要说完成。
+```
+
 ### 2. 抽深度图
 
 ```bash
