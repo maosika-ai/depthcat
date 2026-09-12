@@ -67,6 +67,7 @@ class VDABackend:
         model: str = "small",
         device: str = "auto",
         checkpoint: str | None = None,
+        cuda_memory_fraction: float | None = None,
     ) -> None:
         variant = model
         if variant not in _VARIANTS:
@@ -101,6 +102,11 @@ class VDABackend:
                 f"could not obtain weights for '{variant}': {exc}. "
                 "Set HF_ENDPOINT to a mirror, or pass --checkpoint with a local .pth."
             ) from exc
+        if cuda_memory_fraction is not None and self.device == "cuda":
+            # Emulate a smaller card: allocations beyond the fraction raise OOM instead of
+            # silently using the whole GPU. Used to verify the "runs on N GB" claim.
+            torch.cuda.set_per_process_memory_fraction(cuda_memory_fraction)
+            log.info("cuda memory capped at %.0f%% of the card", cuda_memory_fraction * 100)
         log.info("loading %s from %s on %s (fp32=%s)", variant, path, self.device, self.fp32)
         model = VideoDepthAnything(**_VARIANTS[variant])
         model.load_state_dict(torch.load(path, map_location="cpu", weights_only=True), strict=True)
@@ -112,11 +118,23 @@ class VDABackend:
         # Upstream's infer_video_depth already does 32-frame windows with 10-frame overlap,
         # keyframe-based scale/shift alignment across windows and interpolation over the
         # seam. That is the temporal-consistency machinery — do not re-chunk outside it.
+        if self.device == "cuda":
+            torch.cuda.reset_peak_memory_stats()
         with torch.inference_mode():  # upstream uses no_grad; inference_mode also skips version counters
             depths, _ = self.model.infer_video_depth(
                 frames, fps, input_size=input_size, device=self.device, fp32=self.fp32
             )
         return np.asarray(depths, dtype=np.float32)
+
+    def peak_memory_bytes(self) -> dict[str, int]:
+        """Peak VRAM of the last `infer()`: what the model actually touched (`allocated`)
+        and what the caching allocator held (`reserved`, ≈ what nvidia-smi shows)."""
+        if self.device != "cuda":
+            return {}
+        return {
+            "gpu_peak_allocated_bytes": int(torch.cuda.max_memory_allocated()),
+            "gpu_peak_reserved_bytes": int(torch.cuda.max_memory_reserved()),
+        }
 
 
 __all__ = ["VDABackend", "pick_device"]

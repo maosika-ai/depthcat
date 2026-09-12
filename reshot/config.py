@@ -34,6 +34,7 @@ class RunConfig:
     metrics: Path | None = None
     checkpoint: Path | None = None
     force: bool = False  # ignore the RAM budget
+    cuda_memory_fraction: float | None = None  # cap VRAM to this share of the card (verification aid)
     extra: dict = field(default_factory=dict)  # free-form, echoed into metrics
 
     def __post_init__(self) -> None:
@@ -53,3 +54,5 @@ class RunConfig:
             raise InputError("--crf must be in [0, 51]")
         if self.max_frames is not None and self.max_frames < 1:
             raise InputError("--max-frames must be ≥ 1")
+        if self.cuda_memory_fraction is not None and not 0 < self.cuda_memory_fraction <= 1:
+            raise InputError("--cuda-memory-fraction must be in (0, 1]")

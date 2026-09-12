@@ -23,3 +23,6 @@ class FakeBackend:
         base = 1.0 / (1.0 + ((xx - w / 2) ** 2 + (yy - h / 2) ** 2) / (0.15 * w * h))
         ramp = np.linspace(0.8, 1.0, num=max(t, 1), dtype=np.float32)
         return (base[None] * ramp[:, None, None]).astype(np.float32)
+
+    def peak_memory_bytes(self) -> dict[str, int]:
+        return {}

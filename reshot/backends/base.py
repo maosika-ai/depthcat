@@ -28,3 +28,7 @@ class DepthBackend(Protocol):
     def infer(self, frames: np.ndarray, fps: float, *, input_size: int = 518) -> np.ndarray:
         """`frames`: uint8 RGB `[T, H, W, 3]` → float32 inverse depth `[T, H, W]`."""
         ...
+
+    def peak_memory_bytes(self) -> dict[str, int]:
+        """Accelerator memory peak of the last `infer()`; `{}` when there is none to report."""
+        ...

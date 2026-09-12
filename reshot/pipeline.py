@@ -131,7 +131,11 @@ def _make_backend(cfg: RunConfig):
         return get_backend("fake"), backend_name
     device = pick_device(cfg.device)
     backend = get_backend(
-        "vda", model=cfg.model, device=device, checkpoint=str(cfg.checkpoint) if cfg.checkpoint else None
+        "vda",
+        model=cfg.model,
+        device=device,
+        checkpoint=str(cfg.checkpoint) if cfg.checkpoint else None,
+        cuda_memory_fraction=cfg.cuda_memory_fraction,
     )
     return backend, backend_name
 
@@ -213,8 +217,14 @@ def _run_one(cfg: RunConfig, rep: Reporter, backend, backend_name: str) -> RunRe
     depths = backend.infer(frames, fps, input_size=cfg.input_size)
     depth_seconds = time.time() - t1
     del frames
+    gpu_peak = backend.peak_memory_bytes()
     _release_accelerator(backend.device)  # the model stays; only cached activations go
     rep.step("depth", f"{depth_seconds:.1f}s = {depth_seconds / t * 1000:.0f} ms/frame")
+    if gpu_peak:
+        rep.step(
+            "vram",
+            f"peak {gib(gpu_peak['gpu_peak_allocated_bytes'])} allocated, {gib(gpu_peak['gpu_peak_reserved_bytes'])} reserved",
+        )
 
     if cfg.npz:
         Path(cfg.npz).parent.mkdir(parents=True, exist_ok=True)
@@ -251,6 +261,7 @@ def _run_one(cfg: RunConfig, rep: Reporter, backend, backend_name: str) -> RunRe
         "ms_per_frame": round(depth_seconds / t * 1000, 1),
         "total_seconds": round(total, 2),
         "peak_rss_bytes": peak,
+        **gpu_peak,
         "output": str(out),
         "output_size": [p.out_w, p.out_h],
         "output_bytes": os.path.getsize(out),

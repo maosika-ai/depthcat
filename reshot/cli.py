@@ -71,6 +71,9 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--metrics", type=Path, help="write timing / memory / size metrics as JSON")
     g = p.add_argument_group("safety")
     g.add_argument("--force", action="store_true", help="run even if the RAM estimate exceeds the budget")
+    # Verification aid, not a user feature: makes a big card behave like a small one so a
+    # "runs on N GB" claim can be tested (torch.cuda.set_per_process_memory_fraction).
+    g.add_argument("--cuda-memory-fraction", type=float, default=None, help=argparse.SUPPRESS)
     p.add_argument("-v", "--verbose", action="store_true")
     p.add_argument("--version", action="version", version=f"reshot {__version__}")
     return p
@@ -114,6 +117,7 @@ def configs_from_args(args: argparse.Namespace) -> list[RunConfig]:
                 metrics=per_clip(args.metrics, stem, ".json"),
                 checkpoint=args.checkpoint,
                 force=args.force,
+                cuda_memory_fraction=args.cuda_memory_fraction,
             )
         )
     return cfgs
