@@ -20,7 +20,6 @@ from __future__ import annotations
 import json
 import os
 import platform
-import resource
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -246,6 +245,40 @@ def _license_ok(metrics: dict) -> bool:
 
 
 def _peak_rss_bytes() -> int:
+    """Peak resident memory of this process, in bytes; 0 where the platform can't tell us.
+
+    `resource` is Unix-only — importing it at module level made the whole package fail to
+    import on Windows, so it is imported here and Windows falls back to the Win32 counter.
+    """
+    if platform.system() == "Windows":
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            class _PMC(ctypes.Structure):
+                _fields_ = [
+                    ("cb", wintypes.DWORD),
+                    ("PageFaultCount", wintypes.DWORD),
+                    ("PeakWorkingSetSize", ctypes.c_size_t),
+                    ("WorkingSetSize", ctypes.c_size_t),
+                    ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                    ("PagefileUsage", ctypes.c_size_t),
+                    ("PeakPagefileUsage", ctypes.c_size_t),
+                ]
+
+            pmc = _PMC()
+            pmc.cb = ctypes.sizeof(_PMC)
+            handle = ctypes.windll.kernel32.GetCurrentProcess()
+            if ctypes.windll.psapi.GetProcessMemoryInfo(handle, ctypes.byref(pmc), pmc.cb):
+                return int(pmc.PeakWorkingSetSize)
+        except Exception:  # metrics only, never fail a run over them
+            pass
+        return 0
+    import resource
+
     ru = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     return int(ru if platform.system() == "Darwin" else ru * 1024)  # macOS bytes, Linux KiB
 
