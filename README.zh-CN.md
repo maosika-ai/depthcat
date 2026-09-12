@@ -5,7 +5,7 @@
 <p align="center"><img src="docs/demo-fight.gif" width="720" alt="一段武打参考片、它的深度图、用深度图生成的三段新武打片"></p>
 <p align="center"><sub>上排：参考片和它的深度图。下排：用这张深度图生成的三段片——两个女人、一只兔子。动作一样，镜头一样。<a href="docs/demo-fight.mp4">高清原片</a>。</sub></p>
 
-<p align="center"><a href="README.md">English</a> · <a href="docs/USAGE.zh-CN.md">使用手册</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="CHANGELOG.md">更新日志</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="docs/USAGE.zh-CN.md">使用手册</a> · <a href="https://github.com/maosika-ai/ComfyUI-ReShot">ComfyUI 节点</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="CHANGELOG.md">更新日志</a></p>
 <p align="center">
 <a href="https://github.com/maosika-ai/reshot/actions/workflows/ci.yml"><img src="https://github.com/maosika-ai/reshot/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="Apache-2.0"></a>
@@ -59,6 +59,8 @@ reshot 参考片.mp4 -o 深度图.mp4 --target seedance
 参考@视频1的动作与运镜，顺序与视频保持一致。
 一名穿深绿色丝绒旗袍的女子在狭窄的金属走廊里与三名黑衣守卫搏斗，冷蓝走廊光，红色警示灯，电影感。
 ```
+
+**ComfyUI。** 装 [ComfyUI-ReShot](https://github.com/maosika-ai/ComfyUI-ReShot)，在 Load Video 和你的模型之间放一个 *ReShot Depth Video* 节点就行，完全不用命令行。
 
 **MiniMax H3。** 把 `深度图.mp4` 挂成 `<Video 1>`。想要固定的脸，再把定妆图挂成 `<Picture 1>`。演示用的三张定妆图：
 

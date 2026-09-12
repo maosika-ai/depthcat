@@ -5,7 +5,7 @@
 <p align="center"><img src="docs/demo-fight.gif" width="720" alt="a fight scene, its depth map, and three new takes generated from it"></p>
 <p align="center"><sub>Top: the reference and its depth map. Bottom: three takes generated from that depth map — two women, one rabbit. Same moves, same camera. <a href="docs/demo-fight.mp4">Full-resolution clip</a>.</sub></p>
 
-<p align="center"><a href="README.zh-CN.md">中文</a> · <a href="docs/USAGE.md">User guide</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="CHANGELOG.md">Changelog</a></p>
+<p align="center"><a href="README.zh-CN.md">中文</a> · <a href="docs/USAGE.md">User guide</a> · <a href="https://github.com/maosika-ai/ComfyUI-ReShot">ComfyUI nodes</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="CHANGELOG.md">Changelog</a></p>
 <p align="center">
 <a href="https://github.com/maosika-ai/reshot/actions/workflows/ci.yml"><img src="https://github.com/maosika-ai/reshot/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="Apache-2.0"></a>
@@ -59,6 +59,8 @@ reshot reference.mp4 -o depth.mp4 --target seedance
 参考@视频1的动作与运镜，顺序与视频保持一致。
 一名穿深绿色丝绒旗袍的女子在狭窄的金属走廊里与三名黑衣守卫搏斗，冷蓝走廊光，红色警示灯，电影感。
 ```
+
+**ComfyUI.** Install [ComfyUI-ReShot](https://github.com/maosika-ai/ComfyUI-ReShot) and drop the *ReShot Depth Video* node between Load Video and your model — no command line at all.
 
 **MiniMax H3.** Attach `depth.mp4` as `<Video 1>`. If you want a specific face, attach a character sheet as `<Picture 1>`. These are the three sheets used for the demo:
 
