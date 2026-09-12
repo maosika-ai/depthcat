@@ -59,6 +59,8 @@ depth.mp4 没生成出来之前不要说完成。
 
 **最省事——网页。** 只敲 `reshot`，后面什么都不加，浏览器会打开一个页面（所有处理都在你自己电脑上）。把片子拖进去，选给哪家模型用，点**生成深度图**。参考片和深度图并排预览，数字、下载按钮、要粘到 Seedance 或 MiniMax H3 的提示词都在同一屏。
 
+<p align="center"><img src="docs/img/web_ui_zh.jpg" width="720" alt="ReShot 网页：左边参考片与深度图并排，右边选模型和画质"></p>
+
 ```bash
 reshot                     # 打开 http://127.0.0.1:8765，结果存到 ~/ReShot
 reshot web --port 9000 --out ./depth --no-browser     # 想改端口 / 目录 / 不自动开浏览器

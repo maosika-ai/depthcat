@@ -59,6 +59,8 @@ on a short clip with --metrics and show me the numbers. Don't say it's done unti
 
 **Easiest — the web page.** Type `reshot` with nothing after it: a page opens in your browser (everything stays on your computer). Drop the clip in, pick which model it is for, click **Make depth map**. You get the reference and the depth map side by side, the numbers, a download button, and the prompt line to paste into Seedance or MiniMax H3.
 
+<p align="center"><img src="docs/img/web_ui_en.jpg" width="720" alt="the ReShot web page: reference clip and depth map side by side, target and quality on the right"></p>
+
 ```bash
 reshot                     # opens http://127.0.0.1:8765 — results land in ~/ReShot
 reshot web --port 9000 --out ./depth --no-browser     # options, if you want them
