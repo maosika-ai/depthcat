@@ -61,7 +61,7 @@ Keeps a shot's staging and camera, drops faces, wardrobe and style.
 Code and CLI: [github.com/maosika-ai/reshot](https://github.com/maosika-ai/reshot) · Apache-2.0
 
 *This free-CPU demo processes the first **{LIMITS["max_seconds"]} s** at ≤ {LIMITS["max_res"]} px.
-Expect 1–3 minutes. For full clips and GPU speed, run it locally: `pip install git+https://github.com/maosika-ai/reshot`.*
+Expect 1–3 minutes. For full clips and GPU speed, run it locally: `pip install reshot`.*
 """
     )
     with gr.Row():

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.7 — 2026-09-12
+- **On PyPI**: `pip install reshot` (and `uvx reshot …`). No git needed any more.
+
 ## 0.3.6 — 2026-09-12
 - **`--quality fast` is the default** (the model sees 644×364 for 16:9, 364×644 for 9:16;
   ~3 GB VRAM, 34 ms/frame on a 3080 Ti). `full` (924×518 / 518×924, ~11 GB) is the user's

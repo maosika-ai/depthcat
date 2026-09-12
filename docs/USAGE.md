@@ -16,10 +16,10 @@ Requirements: Python ≥ 3.10, PyTorch ≥ 2.1 (CPU, CUDA or Apple MPS), ffmpeg.
 
 ```bash
 # with your own ffmpeg on PATH
-pip install git+https://github.com/maosika-ai/reshot
+pip install reshot
 
 # no ffmpeg? this extra bundles a static binary
-pip install "reshot[ffmpeg] @ git+https://github.com/maosika-ai/reshot"
+pip install "reshot[ffmpeg]"
 ```
 
 PyTorch is not pinned to a CUDA version; install the build for your machine first if

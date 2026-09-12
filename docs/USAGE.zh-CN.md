@@ -16,10 +16,10 @@
 
 ```bash
 # 自己有 ffmpeg
-pip install git+https://github.com/maosika-ai/reshot
+pip install reshot
 
 # 没有 ffmpeg？这个 extra 自带一个静态二进制
-pip install "reshot[ffmpeg] @ git+https://github.com/maosika-ai/reshot"
+pip install "reshot[ffmpeg]"
 ```
 
 PyTorch 不锁 CUDA 版本；如果 `pip` 装错了，先按 https://pytorch.org/get-started/locally/ 装好再装 reshot。

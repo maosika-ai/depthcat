@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "reshot"
 dynamic = ["version"]
 description = "ReShot — copy the shot, not the actors. Video → depth map for Seedance 2.0/2.5 reference video, MiniMax H3 Fun ControlNet and Wan VACE. Open-sourced by Maosika 猫斯卡 (www.maosika.com), the AI short-drama production system."
-readme = "README.md"
+readme = "docs/PYPI.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.10"
 authors = [{ name = "Maosika 猫斯卡" }]
@@ -14,7 +14,13 @@ keywords = ["video", "depth", "controlnet", "video-generation", "depth-map", "de
 classifiers = [
   "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Topic :: Multimedia :: Video",
+  "Topic :: Multimedia :: Graphics",
+  "Intended Audience :: End Users/Desktop",
+  "Operating System :: OS Independent",
 ]
 dependencies = [
   "torch>=2.1",
@@ -36,6 +42,9 @@ reshot = "reshot.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/maosika-ai/reshot"
+Documentation = "https://github.com/maosika-ai/reshot/blob/main/docs/USAGE.md"
+"ComfyUI nodes" = "https://github.com/maosika-ai/ComfyUI-ReShot"
+Changelog = "https://github.com/maosika-ai/reshot/blob/main/CHANGELOG.md"
 Maosika = "https://www.maosika.com"
 
 [tool.setuptools.dynamic]

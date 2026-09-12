@@ -38,10 +38,10 @@ The three takes in the demo were made exactly this way. Every file involved is i
 ### 1. Install
 
 ```bash
-pip install git+https://github.com/maosika-ai/reshot        # needs ffmpeg on PATH
+pip install reshot        # needs ffmpeg on PATH
 ```
 
-No ffmpeg? `pip install "reshot[ffmpeg] @ git+https://github.com/maosika-ai/reshot"` bundles one. The model weights (111 MB) download on first run.
+No ffmpeg? `pip install "reshot[ffmpeg]"` bundles one. No Python set up at all? [uv](https://docs.astral.sh/uv/) does everything in one line: `uvx --from "reshot[ffmpeg]" reshot reference.mp4 -o depth.mp4 --target seedance`. The model weights (111 MB) download on first run.
 
 ### 2. Make the depth map
 

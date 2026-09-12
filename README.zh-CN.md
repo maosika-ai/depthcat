@@ -38,10 +38,10 @@ ReShot 吃进一个 `.mp4`，吐出一个 `.mp4`。输出是一段**深度图视
 ### 1. 装
 
 ```bash
-pip install git+https://github.com/maosika-ai/reshot        # 需要 PATH 里有 ffmpeg
+pip install reshot        # 需要 PATH 里有 ffmpeg
 ```
 
-没有 ffmpeg 就装 `pip install "reshot[ffmpeg] @ git+https://github.com/maosika-ai/reshot"`，自带一个。模型权重 111 MB，首次运行自动下载；国内先 `export HF_ENDPOINT=https://hf-mirror.com`。
+没有 ffmpeg 就装 `pip install "reshot[ffmpeg]"`，自带一个。连 Python 都没配？用 [uv](https://docs.astral.sh/uv/) 一行搞定：`uvx --from "reshot[ffmpeg]" reshot 参考片.mp4 -o 深度图.mp4 --target seedance`。模型权重 111 MB，首次运行自动下载；国内先 `export HF_ENDPOINT=https://hf-mirror.com`。
 
 ### 2. 抽深度图
 
