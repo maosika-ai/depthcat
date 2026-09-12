@@ -18,9 +18,20 @@ def test_processing_res_never_upscales():
     assert processing_max_res(400, 300) == 400
 
 
-def test_estimate_scales_with_pixels_and_frames():
-    assert estimate_host_bytes(2, 100, 100) == 2 * estimate_host_bytes(1, 100, 100)
-    assert estimate_host_bytes(1, 200, 100) == 2 * estimate_host_bytes(1, 100, 100)
+def test_estimate_is_base_plus_linear_in_pixel_frames():
+    base = estimate_host_bytes(0, 100, 100)
+    one = estimate_host_bytes(1, 100, 100) - base
+    assert estimate_host_bytes(2, 100, 100) - base == 2 * one
+    assert estimate_host_bytes(1, 200, 100) - base == 2 * one
+
+
+def test_estimate_matches_measured_4090_runs():
+    """Calibration points from 2026-09-12 (see planning.py); the padded model must sit
+    above every measurement but within ~25 % of it."""
+    measured = [(48, 900, 518, 2.12), (294, 900, 518, 3.90), (96, 864, 496, 2.36), (289, 864, 496, 3.69)]
+    for frames, w, h, gib in measured:
+        est = estimate_host_bytes(frames, w, h) / 2**30
+        assert gib <= est <= gib * 1.25, (frames, w, h, gib, est)
 
 
 def test_verdict_refuses_over_budget_and_suggests_frames():

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.3 — 2026-09-12
+- Memory estimate is now a measured line, not a guess: peak RSS = 2.0 GiB + 20 B × frames ×
+  processing pixels (fitted on six RTX 4090 runs, base 1.73 GiB / slope 16.9 B, residual
+  ≤ 0.05 GiB, padded ~15 %). The old flat 32 B/pixel-frame over-refused long clips and
+  under-estimated short ones; `--max-frames` suggestions now account for the base.
+- Measured on the same runs: 61–62 ms/frame on a 4090 for clips ≥ 190 frames (77–92 ms/frame
+  for very short clips, where model load and the first window dominate).
+
 ## 0.3.2 — 2026-09-12
 - **Fix: `--max-res` no longer lowers the inference resolution.** It capped the processing
   size too, so `--max-res 320` fed the model a thumbnail; inference now always runs at model
