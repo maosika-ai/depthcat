@@ -213,8 +213,9 @@ def _run_one(cfg: RunConfig, rep: Reporter, backend, backend_name: str) -> RunRe
         "model",
         f"{backend.info.name}/{backend.info.variant} on {backend.device} ({precision}), licence {backend.info.license}",
     )
+    input_size = _fit_input_size_to_vram(cfg.input_size, backend.device, rep)
     t1 = time.time()
-    depths = backend.infer(frames, fps, input_size=cfg.input_size)
+    depths = backend.infer(frames, fps, input_size=input_size)
     depth_seconds = time.time() - t1
     del frames
     gpu_peak = backend.peak_memory_bytes()
@@ -257,6 +258,7 @@ def _run_one(cfg: RunConfig, rep: Reporter, backend, backend_name: str) -> RunRe
         "precision": precision,
         "frames": t,
         "fps": fps,
+        "input_size_used": input_size,
         "depth_seconds": round(depth_seconds, 3),
         "ms_per_frame": round(depth_seconds / t * 1000, 1),
         "total_seconds": round(total, 2),
@@ -303,6 +305,43 @@ def extract(
     else:
         backend = get_backend("vda", model=model, device=device, checkpoint=checkpoint)
     return backend.infer(frames, fps, input_size=input_size), fps
+
+
+#: Measured 2026-09-12 on an RTX 3080 Ti (12 GB), 294 frames at 518×900: input_size 518 peaks at
+#: 7.4 GiB allocated / 10.9 GiB reserved and dies with "tried to allocate 4.02 GiB" when the
+#: card is capped at 8 GB; input_size 364 peaks at 2.25 / 3.0 GiB and runs with a 6 GB cap.
+#: So cards below this line get 364 by default instead of an OOM traceback.
+VRAM_FULL_SIZE_MIN_BYTES = int(11.5 * 2**30)
+VRAM_SMALL_INPUT_SIZE = 364
+
+
+def _cuda_total_bytes(device: str) -> int:
+    """Total memory of the CUDA device in use, 0 for anything else. Split out so tests can fake it."""
+    if device != "cuda":
+        return 0
+    try:
+        import torch
+
+        return int(torch.cuda.get_device_properties(torch.cuda.current_device()).total_memory)
+    except Exception:
+        return 0
+
+
+def _fit_input_size_to_vram(input_size: int, device: str, rep: Reporter) -> int:
+    """Drop the model's working size on small GPUs (see VRAM_FULL_SIZE_MIN_BYTES).
+
+    Only the default is touched: a user who passed `--input-size` explicitly above 364
+    on a small card asked for it and gets the OOM (and the message that comes with it).
+    """
+    total = _cuda_total_bytes(device)
+    if total and total < VRAM_FULL_SIZE_MIN_BYTES and input_size == 518:
+        rep.step(
+            "vram",
+            f"{gib(total)} GPU: using --input-size {VRAM_SMALL_INPUT_SIZE} (518 needs ~11 GB; "
+            f"364 needs ~3 GB and is 2× faster, slightly softer depth)",
+        )
+        return VRAM_SMALL_INPUT_SIZE
+    return input_size
 
 
 def _license_ok(metrics: dict) -> bool:

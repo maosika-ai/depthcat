@@ -98,6 +98,18 @@ Things we learned making the demo:
 - **Change the species, keep the size ratio.** The bear take works because the prompt says the bear is "about 1.3× the rabbit, never more than 1.5×". The depth map already says who is bigger; the prompt must not contradict it.
 - **Plain clothes on extras, no logos.** Whatever the prompt leaves open, the model fills with text and badges.
 
+## What you need
+
+| | Runs? | Measured |
+|---|---|---|
+| **NVIDIA, 12 GB or more** (RTX 3080 Ti, 4070, 4090 …) | Yes, full quality | 4090: 62 ms/frame, 11 GB VRAM peak · 3080 Ti: 83 ms/frame |
+| **NVIDIA, 8 GB** (RTX 3070, 4060 …) | Yes — the tool switches to `--input-size 364` by itself | 3 GB VRAM, 34 ms/frame on a 3080 Ti; depth is slightly softer |
+| **Apple Silicon** | Yes, slower | M2 Max: ~500 ms/frame, a 12 s clip in about 2.5 min |
+| **CPU only** | Yes, slow | ~1.8 s/frame |
+| **Host RAM** | 16 GB covers clips up to ~27 s at 720p | peak = 2 GB + 224 MB per second of 720p; the tool refuses before starting if a clip won't fit |
+
+Verified on rented cards on 2026-09-12; the numbers are in `--metrics` output of those runs.
+
 ## Presets
 
 | `--target` | fps | frame size | length | for |
@@ -124,7 +136,7 @@ Three details make the output something a video model will actually follow:
 - **Frames picked by timestamp.** 30 fps → 24 fps really is 24; nothing is duplicated or dropped in a pattern the model could learn.
 - **Cropped, never padded.** Frame size is trimmed to the model's grid. A black border would read as a far wall.
 
-The model is Video Depth Anything Small (ByteDance, CVPR 2025). It works on overlapping 32-frame windows and aligns them, so depth doesn't jitter between frames. A 12-second 720p clip peaks at 3.9 GB of host RAM (measured; the estimate the tool shows before starting is a fitted line, within 0.05 GB of measurements) and it refuses up front if a clip won't fit. A `fake` backend runs the whole pipeline without a model for your own tests. Errors that are yours to fix are `ReshotError` subclasses with an exit code and a concrete fix in the message.
+The model is Video Depth Anything Small (ByteDance, CVPR 2025). It works on overlapping 32-frame windows and aligns them, so depth doesn't jitter between frames. A 12-second 720p clip peaks at 3.9 GB of host RAM and 11 GB of VRAM (3 GB with `--input-size 364`) (measured; the estimate the tool shows before starting is a fitted line, within 0.05 GB of measurements) and it refuses up front if a clip won't fit. A `fake` backend runs the whole pipeline without a model for your own tests. Errors that are yours to fix are `ReshotError` subclasses with an exit code and a concrete fix in the message.
 
 ## License
 

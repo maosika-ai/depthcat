@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.4 — 2026-09-12
+- **Small GPUs work out of the box.** Measured on an RTX 3080 Ti: the default `--input-size 518`
+  peaks at 7.4 GiB allocated / 10.9 GiB reserved and OOMs on an 8 GB card; 364 peaks at
+  2.25 / 3.0 GiB. Cards under 11.5 GB now get 364 automatically (reported as a `vram` step,
+  recorded as `input_size_used` in metrics); an explicit `--input-size` is always respected.
+- Metrics gain `gpu_peak_allocated_bytes` / `gpu_peak_reserved_bytes`; hidden
+  `--cuda-memory-fraction` emulates a smaller card for verification.
+- README: a "What you need" table with the measured numbers.
+
 ## 0.3.3 — 2026-09-12
 - Memory estimate is now a measured line, not a guess: peak RSS = 2.0 GiB + 20 B × frames ×
   processing pixels (fitted on six RTX 4090 runs, base 1.73 GiB / slope 16.9 B, residual

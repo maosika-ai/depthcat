@@ -124,3 +124,22 @@ def test_cli_batch_loads_model_once_and_skips_bad_clip(tmp_path, monkeypatch):
     assert (out / "a_depth.mp4").exists() and (out / "b_depth.mp4").exists()
     assert (tmp_path / "m" / "a.json").exists() and (tmp_path / "m" / "b.json").exists()
     assert not (out / "missing_depth.mp4").exists()
+
+
+def test_small_gpu_drops_default_input_size_but_respects_explicit(tmp_path, monkeypatch):
+    """An 8 GB card gets input_size 364 instead of an OOM; an explicit --input-size is kept."""
+    import reshot.pipeline as pl
+
+    monkeypatch.setattr(pl, "_cuda_total_bytes", lambda device: 8 * 2**30)
+    steps = []
+
+    class Rep:
+        def step(self, tag, msg):
+            steps.append((tag, msg))
+
+    assert pl._fit_input_size_to_vram(518, "cuda", Rep()) == 364
+    assert steps and steps[0][0] == "vram"
+    assert pl._fit_input_size_to_vram(518 + 14, "cuda", Rep()) == 532  # explicit, left alone
+    monkeypatch.setattr(pl, "_cuda_total_bytes", lambda device: 24 * 2**30)
+    assert pl._fit_input_size_to_vram(518, "cuda", Rep()) == 518
+    assert pl._fit_input_size_to_vram(518, "cpu", Rep()) == 518
