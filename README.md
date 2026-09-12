@@ -83,7 +83,7 @@ Two things in there matter. **Say in words what happens in the grey clip** — t
 
 <p align="center"><img src="docs/img/step4_takes.jpg" width="720" alt="the three takes"></p>
 
-Left to right: [Jiang Xue](docs/prompts/take1_jiangxue_armor.txt) in bronze armour, [Su Wan](docs/prompts/take2_suwan_qipao.txt) in a green velvet qipao, and a [rabbit boxer](docs/prompts/take3_rabbit_boxer.txt) against a wolf, a tiger and a bear as a 3D animated feature. Same six shots, same close-up at the start, same walk out through the door at the end. The reference clip itself was a MiniMax H3 text-to-video render, so nobody's likeness was involved at any step.
+Left to right: [Jiang Xue](docs/prompts/take1_jiangxue_armor.txt) in bronze armour, [Su Wan](docs/prompts/take2_suwan_qipao.txt) in a green velvet qipao, and a [rabbit boxer](docs/prompts/take3_rabbit_boxer.txt) against a wolf, a tiger and a bear as a 3D animated feature. Same six shots, same close-up at the start, same walk out through the door at the end. The reference clip itself was a Seedance 2.0 text-to-video render (864×496, 12 s) and the takes were made on MiniMax H3, so nobody's likeness was involved at any step.
 
 ## What transfers, and what doesn't
 

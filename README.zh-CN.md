@@ -83,7 +83,7 @@ is transferred onto <Subject 1> and <Subject 2>; its grey depth look is not tran
 
 <p align="center"><img src="docs/img/step4_takes.jpg" width="720" alt="三段生成片"></p>
 
-从左到右：穿青铜甲的[江雪](docs/prompts/take1_jiangxue_armor.txt)、穿墨绿丝绒旗袍的[苏晚](docs/prompts/take2_suwan_qipao.txt)、和狼、虎、熊打成一团的[拳手兔子](docs/prompts/take3_rabbit_boxer.txt)（院线 3D 动画风）。同样的六个镜头，开头同样的特写，结尾同样走出那扇门。参考片本身也是 MiniMax H3 用文字生成的，全程没有任何真人肖像。
+从左到右：穿青铜甲的[江雪](docs/prompts/take1_jiangxue_armor.txt)、穿墨绿丝绒旗袍的[苏晚](docs/prompts/take2_suwan_qipao.txt)、和狼、虎、熊打成一团的[拳手兔子](docs/prompts/take3_rabbit_boxer.txt)（院线 3D 动画风）。同样的六个镜头，开头同样的特写，结尾同样走出那扇门。参考片本身是 Seedance 2.0 用文字生成的（864×496，12 秒），三段片在 MiniMax H3 上出的，全程没有任何真人肖像。
 
 ## 能复刻什么，不能复刻什么
 
