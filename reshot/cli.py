@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 
 from ._version import __version__
-from .config import BACKENDS, MODEL_VARIANTS, RunConfig
+from .config import BACKENDS, MODEL_VARIANTS, QUALITIES, RunConfig
 from .errors import ReshotError
 from .pipeline import run, run_many
 from .reporter import StderrReporter
@@ -47,7 +47,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     g.add_argument("--backend", default="vda", choices=BACKENDS, help=argparse.SUPPRESS)
     g.add_argument("--device", default="auto", help="auto | cuda | mps | cpu")
-    g.add_argument("--input-size", type=int, default=518, help="model short side, multiple of 14 (default 518)")
+    g.add_argument(
+        "--quality",
+        default="auto",
+        choices=QUALITIES,
+        help="full = model sees 518 px (needs ~11 GB VRAM), fast = 364 px (~3 GB, 2× faster, softer fine detail); "
+        "auto picks by GPU size (default)",
+    )
+    g.add_argument(
+        "--input-size",
+        type=int,
+        default=None,
+        help="expert: model short side in px, multiple of 14; overrides --quality",
+    )
     g.add_argument("--checkpoint", type=Path, help="local .pth instead of the Hugging Face download")
     g = p.add_argument_group("output")
     g.add_argument(
@@ -108,6 +120,7 @@ def configs_from_args(args: argparse.Namespace) -> list[RunConfig]:
                 fps=args.fps,
                 max_res=args.max_res,
                 max_frames=args.max_frames,
+                quality=args.quality,
                 input_size=args.input_size,
                 invert=args.invert,
                 clip_percent=args.clip,

@@ -11,6 +11,7 @@ from .errors import InputError
 from .targets import TARGETS
 
 MODEL_VARIANTS = ("small", "base", "large")
+QUALITIES = ("auto", "full", "fast")  # model working size: auto = by VRAM, full = 518, fast = 364
 BACKENDS = ("vda", "fake")
 
 
@@ -25,7 +26,8 @@ class RunConfig:
     fps: float | None = None  # None = preset or source
     max_res: int = 1280  # cap on the OUTPUT's longer side
     max_frames: int | None = None
-    input_size: int = 518  # model short side (multiple of 14)
+    quality: str = "auto"  # auto | full | fast — see QUALITIES; `input_size` overrides it
+    input_size: int | None = None  # model short side (multiple of 14); expert override of `quality`
     invert: bool = False
     clip_percent: float = 0.0
     gamma: float = 1.0
@@ -44,8 +46,10 @@ class RunConfig:
             raise InputError(f"unknown --model {self.model!r}; choose from {', '.join(MODEL_VARIANTS)}")
         if self.backend not in BACKENDS:
             raise InputError(f"unknown backend {self.backend!r}; choose from {', '.join(BACKENDS)}")
-        if self.input_size % 14:
-            raise InputError("--input-size must be a multiple of 14 (ViT patch size)")
+        if self.quality not in QUALITIES:
+            raise InputError(f"unknown --quality {self.quality!r}; choose from {', '.join(QUALITIES)}")
+        if self.input_size is not None and (self.input_size < 14 or self.input_size % 14):
+            raise InputError("--input-size must be a positive multiple of 14 (ViT patch size)")
         if not 0 <= self.clip_percent < 50:
             raise InputError("--clip must be in [0, 50)")
         if self.gamma <= 0:

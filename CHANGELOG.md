@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.5 — 2026-09-12
+- **`--quality auto|full|fast`** replaces the silent small-GPU fallback of 0.3.4: `full` is 518 px,
+  `fast` 364 px, `auto` (default) picks by VRAM and says which it chose. `--input-size` stays as
+  the expert override. Measured difference full vs fast on the same clip: mean 5.3/255 grey
+  levels, 95 % of pixels within 15, edge energy −4.5 % — fine detail only.
+
 ## 0.3.4 — 2026-09-12
 - **Small GPUs work out of the box.** Measured on an RTX 3080 Ti: the default `--input-size 518`
   peaks at 7.4 GiB allocated / 10.9 GiB reserved and OOMs on an 8 GB card; 364 peaks at

@@ -40,7 +40,8 @@ reshot 输入 -o 输出 [选项]
 |---|---|---|
 | `--model small\|base\|large` | `small` | 只有 `small` 是 Apache-2.0。`base`/`large` 是 CC-BY-NC-4.0：研究可用，运行时会警告。 |
 | `--device auto\|cuda\|mps\|cpu` | `auto` | CUDA 用 fp16，其余 fp32（MPS 上 fp16 慢到不可用）。 |
-| `--input-size N` | `518` | 模型短边，14 的倍数。`364` 快约一倍，边缘略软。 |
+| `--quality Q` | `auto` | `full` = 模型看短边 518 像素（约 11 GB 显存），`fast` = 364 像素（约 3 GB、快一倍、细节略软：平均差 5.3/255、边缘 −4.5%）。`auto` = ≥11.5 GB 的卡取 full、以下取 fast。 |
+| `--input-size N` | — | 专家用：精确指定模型短边，14 的倍数，覆盖 `--quality`。 |
 | `--checkpoint 路径` | – | 本地 `.pth`，跳过下载。 |
 
 ### 输出

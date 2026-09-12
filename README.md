@@ -102,13 +102,15 @@ Things we learned making the demo:
 
 | | Runs? | Measured |
 |---|---|---|
-| **NVIDIA, 12 GB or more** (RTX 3080 Ti, 4070, 4090 …) | Yes, full quality | 4090: 62 ms/frame, 11 GB VRAM peak · 3080 Ti: 83 ms/frame |
-| **NVIDIA, 8 GB** (RTX 3070, 4060 …) | Yes — the tool switches to `--input-size 364` by itself | 3 GB VRAM, 34 ms/frame on a 3080 Ti; depth is slightly softer |
+| **NVIDIA, 12 GB or more** (RTX 3080 Ti, 4070, 4090 …) | Yes, `--quality full` | 4090: 62 ms/frame, 11 GB VRAM peak · 3080 Ti: 83 ms/frame |
+| **NVIDIA, 8 GB** (RTX 3070, 4060 …) | Yes, `--quality fast` (picked automatically) | 3 GB VRAM, 34 ms/frame on a 3080 Ti |
 | **Apple Silicon** | Yes, slower | M2 Max: ~500 ms/frame, a 12 s clip in about 2.5 min |
 | **CPU only** | Yes, slow | ~1.8 s/frame |
 | **Host RAM** | 16 GB covers clips up to ~27 s at 720p | peak = 2 GB + 224 MB per second of 720p; the tool refuses before starting if a clip won't fit |
 
-Verified on rented cards on 2026-09-12; the numbers are in `--metrics` output of those runs.
+**`--quality`** is yours to choose: `auto` (default) takes `full` on cards with 11.5 GB or more and `fast` below that; pass `full` or `fast` to decide yourself. The difference, measured on the same 294-frame clip: the model sees the frame at 518 px vs 364 px on the short side; large shapes — people, props, who is nearer — come out identical, fine detail is softer at `fast` (a loose strand of hair merges into the cheek). Mean difference 5.3 of 255 grey levels, 95 % of pixels within 15, edge energy −4.5 %. For copying blocking and camera, `fast` is enough; for close-ups where fine silhouettes matter, use `full`. Experts can set the exact size with `--input-size`.
+
+Verified on rented cards on 2026-09-12; the numbers are in the `--metrics` output of those runs.
 
 ## Presets
 

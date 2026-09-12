@@ -126,20 +126,28 @@ def test_cli_batch_loads_model_once_and_skips_bad_clip(tmp_path, monkeypatch):
     assert not (out / "missing_depth.mp4").exists()
 
 
-def test_small_gpu_drops_default_input_size_but_respects_explicit(tmp_path, monkeypatch):
-    """An 8 GB card gets input_size 364 instead of an OOM; an explicit --input-size is kept."""
+def test_quality_resolution(tmp_path, monkeypatch):
+    """auto: full on a big card, fast on a small one; full/fast are the user's call regardless;
+    an explicit --input-size beats everything."""
     import reshot.pipeline as pl
+
+    def cfg(**kw):
+        return RunConfig(input=tmp_path / "x.mp4", output=tmp_path / "y.mp4", backend="fake", **kw)
 
     monkeypatch.setattr(pl, "_cuda_total_bytes", lambda device: 8 * 2**30)
     steps = []
 
     class Rep:
         def step(self, tag, msg):
-            steps.append((tag, msg))
+            steps.append(tag)
 
-    assert pl._fit_input_size_to_vram(518, "cuda", Rep()) == 364
-    assert steps and steps[0][0] == "vram"
-    assert pl._fit_input_size_to_vram(518 + 14, "cuda", Rep()) == 532  # explicit, left alone
+    assert pl.resolve_input_size(cfg(), "cuda", Rep()) == 364 and steps == ["quality"]
+    assert pl.resolve_input_size(cfg(quality="full"), "cuda") == 518  # user insists
+    assert pl.resolve_input_size(cfg(quality="fast"), "cuda") == 364
+    assert pl.resolve_input_size(cfg(input_size=700), "cuda") == 700
     monkeypatch.setattr(pl, "_cuda_total_bytes", lambda device: 24 * 2**30)
-    assert pl._fit_input_size_to_vram(518, "cuda", Rep()) == 518
-    assert pl._fit_input_size_to_vram(518, "cpu", Rep()) == 518
+    assert pl.resolve_input_size(cfg(), "cuda") == 518
+    assert pl.resolve_input_size(cfg(), "cpu") == 518
+    assert pl.resolve_input_size(cfg(quality="fast"), "cpu") == 364
+    with pytest.raises(InputError):
+        cfg(quality="ultra")

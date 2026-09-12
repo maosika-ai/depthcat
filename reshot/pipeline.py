@@ -76,6 +76,12 @@ class RunResult:
         return self.depth_seconds / max(self.frames, 1) * 1000.0
 
 
+def _planning_input_size(cfg: RunConfig) -> int:
+    if cfg.input_size is not None:
+        return cfg.input_size
+    return QUALITY_INPUT_SIZE.get(cfg.quality, QUALITY_INPUT_SIZE["full"])
+
+
 def plan(cfg: RunConfig) -> Plan:
     """Probe the source and decide sizes and frame counts. Cheap; no decoding."""
     try:
@@ -99,7 +105,9 @@ def plan(cfg: RunConfig) -> Plan:
     # from a thumbnail. The three demo takes were made from full-resolution depth
     # downscaled afterwards, which is what this now does.
     cap = cfg.max_res if cfg.max_res > 0 else 10**9
-    proc_max_res = processing_max_res(src_w, src_h, cfg.input_size)
+    # RAM planning uses the largest size `quality` may resolve to (auto → full), so the
+    # estimate is never below what a big card will actually do.
+    proc_max_res = processing_max_res(src_w, src_h, _planning_input_size(cfg))
     scale = min(1.0, proc_max_res / max(src_w, src_h))
     proc_w, proc_h = (int(round(src_w * scale / 2) * 2), int(round(src_h * scale / 2) * 2))
 
@@ -213,7 +221,7 @@ def _run_one(cfg: RunConfig, rep: Reporter, backend, backend_name: str) -> RunRe
         "model",
         f"{backend.info.name}/{backend.info.variant} on {backend.device} ({precision}), licence {backend.info.license}",
     )
-    input_size = _fit_input_size_to_vram(cfg.input_size, backend.device, rep)
+    input_size = resolve_input_size(cfg, backend.device, rep)
     t1 = time.time()
     depths = backend.infer(frames, fps, input_size=input_size)
     depth_seconds = time.time() - t1
@@ -307,12 +315,14 @@ def extract(
     return backend.infer(frames, fps, input_size=input_size), fps
 
 
-#: Measured 2026-09-12 on an RTX 3080 Ti (12 GB), 294 frames at 518×900: input_size 518 peaks at
-#: 7.4 GiB allocated / 10.9 GiB reserved and dies with "tried to allocate 4.02 GiB" when the
-#: card is capped at 8 GB; input_size 364 peaks at 2.25 / 3.0 GiB and runs with a 6 GB cap.
-#: So cards below this line get 364 by default instead of an OOM traceback.
-VRAM_FULL_SIZE_MIN_BYTES = int(11.5 * 2**30)
-VRAM_SMALL_INPUT_SIZE = 364
+#: Model working size (short side) per quality. Measured 2026-09-12 on an RTX 3080 Ti (12 GB),
+#: 294 frames of 736×1280:
+#:   full 518 → 7.4 GiB allocated / 10.9 GiB reserved, 83 ms/frame; OOMs on an 8 GB card
+#:   fast 364 → 2.25 / 3.0 GiB, 34 ms/frame; runs on 6 GB
+#: Against each other over the whole clip: mean |Δ| 5.3 grey levels, 95th percentile 15,
+#: edge energy −4.5 % — large shapes identical, fine detail (a strand of hair) softer at 364.
+QUALITY_INPUT_SIZE = {"full": 518, "fast": 364}
+VRAM_FULL_SIZE_MIN_BYTES = int(11.5 * 2**30)  # below this, `auto` picks fast
 
 
 def _cuda_total_bytes(device: str) -> int:
@@ -327,21 +337,26 @@ def _cuda_total_bytes(device: str) -> int:
         return 0
 
 
-def _fit_input_size_to_vram(input_size: int, device: str, rep: Reporter) -> int:
-    """Drop the model's working size on small GPUs (see VRAM_FULL_SIZE_MIN_BYTES).
+def resolve_input_size(cfg: RunConfig, device: str, rep: Reporter | None = None) -> int:
+    """What the model will actually see, from `quality` / `input_size` / the GPU.
 
-    Only the default is touched: a user who passed `--input-size` explicitly above 364
-    on a small card asked for it and gets the OOM (and the message that comes with it).
+    Precedence: an explicit `input_size` wins; then `quality` full/fast; `auto` is full on
+    a card with ≥ 11.5 GB (or anything that is not CUDA) and fast below that, and says so.
     """
+    rep = rep or NullReporter()
+    if cfg.input_size is not None:
+        return cfg.input_size
+    if cfg.quality in QUALITY_INPUT_SIZE:
+        return QUALITY_INPUT_SIZE[cfg.quality]
     total = _cuda_total_bytes(device)
-    if total and total < VRAM_FULL_SIZE_MIN_BYTES and input_size == 518:
+    if total and total < VRAM_FULL_SIZE_MIN_BYTES:
         rep.step(
-            "vram",
-            f"{gib(total)} GPU: using --input-size {VRAM_SMALL_INPUT_SIZE} (518 needs ~11 GB; "
-            f"364 needs ~3 GB and is 2× faster, slightly softer depth)",
+            "quality",
+            f"auto → fast on a {gib(total)} GPU (full needs ~11 GB; fast ~3 GB, 2× faster, "
+            f"softer fine detail). Force it with --quality full.",
         )
-        return VRAM_SMALL_INPUT_SIZE
-    return input_size
+        return QUALITY_INPUT_SIZE["fast"]
+    return QUALITY_INPUT_SIZE["full"]
 
 
 def _license_ok(metrics: dict) -> bool:

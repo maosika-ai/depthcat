@@ -41,7 +41,8 @@ reshot INPUT -o OUTPUT [options]
 |---|---|---|
 | `--model small\|base\|large` | `small` | Only `small` is Apache-2.0. `base`/`large` are CC-BY-NC-4.0: allowed for research, a warning is printed. |
 | `--device auto\|cuda\|mps\|cpu` | `auto` | fp16 on CUDA, fp32 elsewhere (fp16 on MPS is unusably slow). |
-| `--input-size N` | `518` | Model short side, multiple of 14. `364` is ~2× faster with visibly softer edges. |
+| `--quality Q` | `auto` | `full` = model sees 518 px on the short side (~11 GB VRAM), `fast` = 364 px (~3 GB, 2× faster, fine detail softer: mean Δ 5.3/255, edges −4.5 %). `auto` = full on ≥ 11.5 GB cards, fast below. |
+| `--input-size N` | — | Expert: exact model short side, multiple of 14; overrides `--quality`. |
 | `--checkpoint PATH` | – | Local `.pth`, skips the download. |
 
 ### Output
