@@ -11,7 +11,7 @@ short_description: Copy the shot, not the actors. By Maosika 猫斯卡.
 
 # ReShot
 
-Copy the shot, not the actors. ReShot turns any reference video into a depth blockout — the
+Copy the shot, not the actors. ReShot turns any reference video into a depth map — the
 control signal that lets a video model copy a shot's **staging and camera** without copying
 its faces, wardrobe or style.
 

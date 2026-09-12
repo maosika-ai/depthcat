@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 — 2026-09-12
+- Wording: the output is called what it is — a **depth map** (relative inverse depth, monocular
+  video depth estimation), no longer a "blockout" (that term means untextured 3D geometry).
+  Docs, CLI help, Space page and demo labels updated; `demo.make_blockout` → `make_depth_map`.
+
 ## 0.3.0 — 2026-09-12
 - **Renamed: depthcat → ReShot.** Package, CLI, env var and error class follow:
   `pip install git+https://github.com/maosika-ai/reshot`, `reshot in.mp4 -o out.mp4`,

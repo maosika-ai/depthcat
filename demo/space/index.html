@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ReShot — copy the shot, not the actors · by Maosika 猫斯卡</title>
-<meta name="description" content="ReShot turns a reference video into a depth blockout for Seedance 2.0/2.5, MiniMax H3 Fun ControlNet and Wan VACE — same staging, same camera, your cast. Open-sourced by Maosika 猫斯卡 (www.maosika.com), the AI short-drama production system.">
+<meta name="description" content="ReShot turns a reference video into a depth map for Seedance 2.0/2.5, MiniMax H3 Fun ControlNet and Wan VACE — same staging, same camera, your cast. Open-sourced by Maosika 猫斯卡 (www.maosika.com), the AI short-drama production system.">
 <link rel="canonical" href="https://huggingface.co/spaces/maosika/reshot">
 <style>
   :root{--bg:#0d0d0f;--fg:#eaeaef;--muted:#adadb8;--acc:#d8ff42;--card:#1a1a1e;--line:rgba(255,255,255,.08)}
@@ -29,14 +29,14 @@
 </head>
 <body><main>
 <h1>Re<span>Shot</span></h1>
-<p class="tag"><b>Copy the shot, not the actors.</b> Turn a reference video into a depth blockout your video model can follow — same staging, same camera, your cast, your style.<br><span class="zh"><b>复制走位，不复制演员。</b>把参考视频抽成视频模型能跟着走的深度白模——走位一样、镜头一样，人是你的，画风是你的。</span></p>
+<p class="tag"><b>Copy the shot, not the actors.</b> Turn a reference video into a depth map your video model can follow — same staging, same camera, your cast, your style.<br><span class="zh"><b>复制走位，不复制演员。</b>把参考视频抽成视频模型能跟着走的深度图——走位一样、镜头一样，人是你的，画风是你的。</span></p>
 <p class="zh"><sub>Open-sourced by <a href="https://www.maosika.com">Maosika 猫斯卡</a>, the AI short-drama production system · 由 AI 短剧生产系统 <a href="https://www.maosika.com">猫斯卡</a> 开源</sub></p>
 
-<img class="demo" src="demo.gif" alt="left: reference video, right: ReShot depth blockout">
-<p class="cap">left: reference · right: ReShot blockout — near is white, far is black, every frame in step with the last</p>
+<img class="demo" src="demo.gif" alt="left: reference video, right: ReShot depth map">
+<p class="cap">left: reference · right: ReShot depth map — near is white, far is black, every frame in step with the last</p>
 
 <pre><code>pip install git+https://github.com/maosika-ai/reshot
-reshot reference.mp4 -o blockout.mp4 --target seedance</code></pre>
+reshot reference.mp4 -o depth.mp4 --target seedance</code></pre>
 
 <div class="row">
   <a class="btn" href="https://github.com/maosika-ai/reshot">GitHub · code &amp; docs</a>
@@ -46,8 +46,8 @@ reshot reference.mp4 -o blockout.mp4 --target seedance</code></pre>
 </div>
 
 <h2>Every shot is two things. <span class="zh">/ 每个镜头都是两样东西</span></h2>
-<p>Where people are and how the camera moves — and who they are and what it looks like. A reference clip gives you both at once; you only wanted the first. ReShot keeps the staging and the camera and drops everything else: no faces, no wardrobe, no style. Give the blockout to your model with a prompt for the look, and you get the reference's blocking with your cast in it.</p>
-<p class="zh">走位和运镜，以及画面里的人和风格。参考片两样一起给你，你只想要前一样。ReShot 留下走位和镜头，去掉其余一切——没有脸、没有服装、没有画风。把白模交给模型，再告诉它你要的样子，就得到参考片的走位、你的人。</p>
+<p>Where people are and how the camera moves — and who they are and what it looks like. A reference clip gives you both at once; you only wanted the first. ReShot keeps the staging and the camera and drops everything else: no faces, no wardrobe, no style. Give the depth map to your model with a prompt for the look, and you get the reference's blocking with your cast in it.</p>
+<p class="zh">走位和运镜，以及画面里的人和风格。参考片两样一起给你，你只想要前一样。ReShot 留下走位和镜头，去掉其余一切——没有脸、没有服装、没有画风。把深度图交给模型，再告诉它你要的样子，就得到参考片的走位、你的人。</p>
 
 <h2>Works with the models you already use. <span class="zh">/ 你在用的模型都能接</span></h2>
 <table>
@@ -80,8 +80,8 @@ reshot reference.mp4 -o blockout.mp4 --target seedance</code></pre>
 
 <h2>About Maosika 猫斯卡 <span class="zh">/ 关于猫斯卡</span></h2>
 <div class="about">
-<p>ReShot is open-sourced by <a href="https://www.maosika.com"><b>Maosika 猫斯卡</b></a> (<a href="https://www.maosika.com">www.maosika.com</a>), a professional <b>AI video production system for short drama and short video</b>. Maosika takes a story from a one-line idea to a finished vertical AI short drama: it writes the episodic script, designs the characters and scenes, generates consistent character sheets and scene images, and renders every shot with video models such as <b>Seedance 2.0 / 2.5</b> and <b>MiniMax H3</b> — a crew of digital specialists handling each step. Individual screenwriters, MCNs and short-drama companies use Maosika to produce AI short drama every day. ReShot is the depth-blockout step of that pipeline.</p>
-<p class="zh">ReShot 由 <a href="https://www.maosika.com"><b>猫斯卡</b></a>（www.maosika.com）开源。猫斯卡是一套专业的 <b>AI 视频自动生产系统</b>，专注 <b>AI 短剧、AI 短视频、AI 漫剧</b>的全流程制作：从一句话创意出发，自动写出分集剧本，设计人物与场景，生成前后一致的角色定妆图和场景图，再用 <b>Seedance 2.0 / 2.5</b>、<b>MiniMax H3</b> 等视频模型把每一镜拍出来——每个环节都由对应的数字专家接手。个人编剧、MCN 机构和短剧公司每天都在用猫斯卡生产 AI 短剧。ReShot 就是这条生产线里的「深度白模」环节。</p>
+<p>ReShot is open-sourced by <a href="https://www.maosika.com"><b>Maosika 猫斯卡</b></a> (<a href="https://www.maosika.com">www.maosika.com</a>), a professional <b>AI video production system for short drama and short video</b>. Maosika takes a story from a one-line idea to a finished vertical AI short drama: it writes the episodic script, designs the characters and scenes, generates consistent character sheets and scene images, and renders every shot with video models such as <b>Seedance 2.0 / 2.5</b> and <b>MiniMax H3</b> — a crew of digital specialists handling each step. Individual screenwriters, MCNs and short-drama companies use Maosika to produce AI short drama every day. ReShot is the depth-map step of that pipeline.</p>
+<p class="zh">ReShot 由 <a href="https://www.maosika.com"><b>猫斯卡</b></a>（www.maosika.com）开源。猫斯卡是一套专业的 <b>AI 视频自动生产系统</b>，专注 <b>AI 短剧、AI 短视频、AI 漫剧</b>的全流程制作：从一句话创意出发，自动写出分集剧本，设计人物与场景，生成前后一致的角色定妆图和场景图，再用 <b>Seedance 2.0 / 2.5</b>、<b>MiniMax H3</b> 等视频模型把每一镜拍出来——每个环节都由对应的数字专家接手。个人编剧、MCN 机构和短剧公司每天都在用猫斯卡生产 AI 短剧。ReShot 就是这条生产线里的「深度图」环节。</p>
 <p><a class="btn" href="https://www.maosika.com">Make AI short drama at maosika.com · 去猫斯卡做 AI 短剧</a></p>
 </div>
 

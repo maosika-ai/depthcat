@@ -1,4 +1,4 @@
-"""ReShot — turn any video into a depth "blockout" video for video-generation control.
+"""ReShot — turn any video into a depth-map video for video-generation control.
 
 from pathlib import Path
 from reshot import RunConfig, run

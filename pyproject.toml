@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "reshot"
 dynamic = ["version"]
-description = "ReShot — copy the shot, not the actors. Video → depth blockout for Seedance 2.0/2.5 reference video, MiniMax H3 Fun ControlNet and Wan VACE. Open-sourced by Maosika 猫斯卡 (www.maosika.com), the AI short-drama production system."
+description = "ReShot — copy the shot, not the actors. Video → depth map for Seedance 2.0/2.5 reference video, MiniMax H3 Fun ControlNet and Wan VACE. Open-sourced by Maosika 猫斯卡 (www.maosika.com), the AI short-drama production system."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.10"
 authors = [{ name = "Maosika 猫斯卡" }]
-keywords = ["video", "depth", "controlnet", "video-generation", "blockout", "depth-anything", "seedance", "minimax-h3", "ai-short-drama", "maosika"]
+keywords = ["video", "depth", "controlnet", "video-generation", "depth-map", "depth-anything", "seedance", "minimax-h3", "ai-short-drama", "maosika"]
 classifiers = [
   "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3",

@@ -1,9 +1,9 @@
 <h1 align="center">ReShot</h1>
 <p align="center"><b>Copy the shot, not the actors.</b></p>
-<p align="center"><sub>Open-source depth-blockout tool from <a href="https://www.maosika.com">Maosika 猫斯卡</a>, the AI short-drama production system.</sub></p>
+<p align="center"><sub>Open-source depth-map tool from <a href="https://www.maosika.com">Maosika 猫斯卡</a>, the AI short-drama production system.</sub></p>
 
-<p align="center"><img src="docs/demo.gif" width="720" alt="a fight scene, its depth blockout, and a new fight generated from it"></p>
-<p align="center"><sub>A fight scene. Its depth blockout. A new take — different fighters, same choreography, same camera.</sub></p>
+<p align="center"><img src="docs/demo.gif" width="720" alt="a fight scene, its depth map, and a new fight generated from it"></p>
+<p align="center"><sub>A fight scene. Its depth map. A new take — different fighters, same choreography, same camera.</sub></p>
 
 <p align="center"><a href="README.zh-CN.md">中文</a> · <a href="docs/USAGE.md">User guide</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="CHANGELOG.md">Changelog</a></p>
 <p align="center">
@@ -27,24 +27,28 @@ the wardrobe, the style — everything you didn't ask for.
 
 ## Keep the choreography. Change everything else.
 
-ReShot turns a reference clip into a depth blockout: a clean, silent record of the
+ReShot turns a reference clip into a depth map: a clean, silent record of the
 staging and nothing else. Near is white, far is black, every frame in step with the last.
 No faces. No costumes. No style. Just the shot.
 
-Give the blockout to your video model along with a prompt for the look, and you get the
+Technically: monocular video depth estimation. The model predicts relative inverse depth
+for every frame; ReShot normalises it once over the whole clip to 8-bit grey (near = white)
+and encodes it as a standard depth-map video.
+
+Give the depth map to your video model along with a prompt for the look, and you get the
 reference's blocking and camera with your cast in it.
 
 ```bash
 pip install git+https://github.com/maosika-ai/reshot
-reshot reference.mp4 -o blockout.mp4 --target seedance
+reshot reference.mp4 -o depth.mp4 --target seedance
 ```
 
 That's the whole thing.
 
 ## Works with the models you already use.
 
-**Seedance 2.0 and 2.5.** Add the blockout as a reference video and ask for its motion
-and camera. The blockout meets the API's reference-video requirements out of the box —
+**Seedance 2.0 and 2.5.** Add the depth map as a reference video and ask for its motion
+and camera. The depth map meets the API's reference-video requirements out of the box —
 24 fps, H.264, sized for the model — and because it carries no likeness, it passes the
 content checks that stop real footage.
 
@@ -52,7 +56,7 @@ content checks that stop real footage.
 参考@视频1的动作与运镜。两名武者在雨夜屋顶对决，黑色劲装，冷蓝月光，电影感。
 ```
 
-**MiniMax H3 Fun ControlNet.** Use the blockout as the depth condition. 24 fps, frame size
+**MiniMax H3 Fun ControlNet.** Use the depth map as the depth condition. 24 fps, frame size
 a multiple of 32, up to 15 seconds — the preset handles it.
 
 **Wan VACE, and any depth ControlNet.** It's a standard near-white depth video. If your
@@ -67,7 +71,7 @@ model reads depth, it reads this.
 
 ## Steady by design.
 
-A blockout is only useful if the model trusts it. So ReShot is built around the details
+A depth map is only useful if the model trusts it. So ReShot is built around the details
 that make a depth video hold still.
 
 - **It sees the whole clip.** The model works on overlapping windows of 32 frames and
@@ -90,7 +94,7 @@ Batch a folder of references in a shell loop, or call it from Python:
 from pathlib import Path
 from reshot import RunConfig, run
 
-run(RunConfig(input=Path("reference.mp4"), output=Path("blockout.mp4"), target="seedance"))
+run(RunConfig(input=Path("reference.mp4"), output=Path("depth.mp4"), target="seedance"))
 ```
 
 ## Yours to ship.
@@ -125,7 +129,7 @@ images, and renders every shot with video models such as **Seedance 2.0 / 2.5** 
 produce a series that used to take a studio. Individual screenwriters, MCNs and short-drama
 companies use Maosika to produce AI short drama every day.
 
-ReShot is the depth-blockout step of that pipeline, released under Apache-2.0 so anyone
+ReShot is the depth-map step of that pipeline, released under Apache-2.0 so anyone
 can copy a reference shot's staging and camera into their own AI-generated video. To make
 AI short drama, AI short video or AI manhua drama end to end, visit
 **[https://www.maosika.com](https://www.maosika.com)**.

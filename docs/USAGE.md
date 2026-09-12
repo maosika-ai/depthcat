@@ -219,7 +219,7 @@ input video ─▶ probe ─▶ plan (sizes, frames, RAM) ─▶ decode at model
 | very slow on Mac | torch < 2.9, or fp16 forced | `pip install -U torch`; never force fp16 on MPS |
 | output is 30 fps although `--fps 24` | source fps < 24 | reshot never upsamples |
 | output smaller than source | `--target` crop or `--max-res` | expected; see Targets |
-| banding in the blockout | `--crf` raised | keep ≤ 14 |
+| banding in the depth map | `--crf` raised | keep ≤ 14 |
 | people look flat / merged with background | scene has little depth range | try `--clip 0.5 --gamma 1.3` |
 
 ## FAQ

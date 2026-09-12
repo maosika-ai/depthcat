@@ -13,7 +13,7 @@ short_description: Copy the shot, not the actors. By Maosika 猫斯卡.
 
 # ReShot
 
-Turn any video into a depth blockout — the control signal that lets a video model copy a
+Turn any video into a depth map — the control signal that lets a video model copy a
 shot's **staging and camera** without copying its faces, wardrobe or style.
 
 - Code, CLI and docs: https://github.com/maosika-ai/reshot (Apache-2.0)

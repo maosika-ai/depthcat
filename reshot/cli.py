@@ -26,7 +26,7 @@ from .targets import TARGETS
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="reshot",
-        description="Video → depth blockout video for video-generation ControlNets.",
+        description="Video → depth-map video for video-generation ControlNets.",
         epilog="Docs: https://github.com/maosika-ai/reshot",
     )
     p.add_argument("input", type=Path, help="input video (anything ffmpeg/OpenCV can read)")
