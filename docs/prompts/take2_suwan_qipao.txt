@@ -1,0 +1,24 @@
+subject_definitions:
+<Subject 1> is the young woman shown in <Picture 1> and in close-up in <Picture 2>, Su Wan, an elegant beauty with black hair in a low side bun, a pearl earring and a dark green velvet qipao; both pictures are used only for her appearance and her face must match <Picture 2> exactly.
+<Subject 2> is a group of four guards in plain black tactical clothing without any markings, one of them holding a steel baton, the largest of them a head taller than the others.
+<Subject 3> is the fight choreography and camera movement shown in <Video 1>, a grey depth map in which near objects are white and far objects are black: one fighter leans on a corridor wall in close-up, kicks off it to tear down a pipe, fights several men, is grabbed from behind by the largest and throws him, slams the last one into a wall panel, wipes the mouth in close-up, then walks away through a door past the fallen men.
+<Subject 4> is a narrow steel corridor with riveted grey walls, flickering ceiling strip lights, a blinking red alarm lamp, sprinkler mist hanging in the air, stacked metal crates along one side, a wall control panel and a heavy sliding door at the far end.
+summary:
+[reference generation] <Subject 1> fights <Subject 2> inside <Subject 4>, reproducing shot for shot the choreography and camera of <Subject 3>: a close-up with eyes closed, kicking off the wall to tear down a pipe, a brawl in which she throws the largest guard over her shoulder, slamming the last guard into the control panel, wiping her mouth, and walking out through the door.
+retention_analysis:
+<Subject 1> (appears in [Shot 1], [Shot 2], [Shot 3], [Shot 4], [Shot 5], [Shot 6]): fully_preserved - her face, side bun, pearl earring and green velvet qipao are retained exactly as in <Picture 1>.
+<Subject 2> (appears in [Shot 3], [Shot 4], [Shot 6]): fully_preserved - plain black-clad guards.
+<Subject 3> (appears in [Shot 1], [Shot 2], [Shot 3], [Shot 4], [Shot 5], [Shot 6]): attribute_transfer - every action, position, timing and camera move of <Video 1> is transferred onto <Subject 1> and <Subject 2>; its grey depth look is not transferred.
+<Subject 4> (appears in all shots): fully_preserved - the corridor, crates, panel and door layout are retained.
+detailed_description:
+The target video is a photorealistic action fantasy with cold cinematic corridor lighting and a teal-and-red color grade.
+[Shot 1] A tight close-up frames the face of <Subject 1> leaning back against the corridor wall of <Subject 4>, eyes closed, jaw set; the flickering light plays across her face, then her eyes snap open and she lets out a short shout as the camera holds a static shot.
+[Shot 2] At 00:01.000, the shot cuts to a low medium-wide shot as <Subject 1> kicks off the wall, springs up, and rips a steel pipe from the wall fixture in a burst of sparks; the camera tracks her with small amplitude at fast speed.
+[Shot 3] At 00:02.000, the camera cuts to a handheld medium shot inside the brawl in <Subject 4>: <Subject 1> drives the pipe into the ribs of one guard of <Subject 2>, hooks his neck and spins him into the wall, then leaps into a flying kick that sends a second guard crashing into the crates. The largest guard charges in and wraps <Subject 1> from behind in a crushing bear hug; <Subject 1> snaps her head back into his face, twists, and throws him over her shoulder so that his body slams flat onto the floor. The camera shakes slightly and trucks right to follow the action.
+[Shot 4] At 00:07.000, the shot cuts to a medium shot as <Subject 1> grabs the last guard of <Subject 2> by the collar, drags him to the control panel and smashes his head into it; sparks spray from the panel and the heavy door at the end of <Subject 4> hisses open. The camera pushes in with small amplitude.
+[Shot 5] At 00:08.500, the camera cuts to a close-up of <Subject 1>, chest heaving, wiping blood from the corner of her mouth with the back of her hand and staring past the camera; the camera holds a static shot.
+[Shot 6] At 00:10.000, the shot cuts to a wide shot from low behind the fallen guards of <Subject 2> on the corridor floor as <Subject 1> steps over them and walks away through the open door into darkness; the camera holds a static shot.
+overall_soundscape:
+Low electrical hum of the corridor, dripping sprinkler water, heavy body impacts, the clang of the pipe on metal, sparks crackling, ragged breathing, the hiss of the hydraulic door.
+non_diegetic_music:
+A sparse, low pulsing synth bass with a slow heartbeat-like kick that fades out at the end.

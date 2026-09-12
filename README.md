@@ -1,9 +1,9 @@
 <h1 align="center">ReShot</h1>
 <p align="center"><b>Copy the shot, not the actors.</b></p>
-<p align="center"><sub>Open-source depth-map tool from <a href="https://www.maosika.com">Maosika 猫斯卡</a>, the AI short-drama production system.</sub></p>
+<p align="center">ReShot turns a reference video into a depth map, so Seedance or MiniMax H3 can repeat its choreography and camera moves — with your own characters in it.</p>
 
 <p align="center"><img src="docs/demo-fight.gif" width="720" alt="a fight scene, its depth map, and three new takes generated from it"></p>
-<p align="center"><sub>A fight scene. Its depth map. Three new takes — different fighters (one of them a bear), same choreography, same camera. <a href="docs/demo-fight.mp4">Full-resolution clip</a>.</sub></p>
+<p align="center"><sub>Top: the reference and its depth map. Bottom: three takes generated from that depth map — two women, one rabbit. Same moves, same camera. <a href="docs/demo-fight.mp4">Full-resolution clip</a>.</sub></p>
 
 <p align="center"><a href="README.zh-CN.md">中文</a> · <a href="docs/USAGE.md">User guide</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="CHANGELOG.md">Changelog</a></p>
 <p align="center">
@@ -14,81 +14,102 @@
 
 ---
 
-## Every shot is two things.
+## The problem
 
-Where everyone stands. How big they are. The way they move. The way the camera moves.
-That's the **staging** — and it's what makes a great shot great.
+You have a clip whose fight, dance or camera move is exactly what you want in your own AI video. There are two ways to get it, and both fail:
 
-Then there's who they are, what they wear, how the light falls. That's the **look**.
+- **Feed the clip to the video model as a reference.** It copies the faces, the clothes and the look along with the moves. If the clip has real people in it, the platform's content check may refuse it outright.
+- **Describe the moves in words.** "She kicks off the wall, grabs a pipe, throws the big guy over her shoulder" — the model gives you a different fight every time, and the camera never does what you said.
 
-Until now you couldn't take one without the other. Describe the staging in words and the
-model gives you something else every time. Hand it the footage and it takes the faces,
-the wardrobe, the style — everything you didn't ask for.
+## What ReShot does
 
-## Keep the choreography. Change everything else.
+ReShot takes an `.mp4` in and writes an `.mp4` out. The output is a **depth map video**: every frame is grey, near things are white, far things are black. It keeps where everyone stands, how big they are, how they move and how the camera moves. It throws away faces, clothes, lighting and style.
 
-ReShot turns a reference clip into a depth map: a clean, silent record of the
-staging and nothing else. Near is white, far is black, every frame in step with the last.
-No faces. No costumes. No style. Just the shot.
+<p align="center"><img src="docs/img/step1_reference.jpg" width="360" alt="reference frame"> <img src="docs/img/step2_depth.jpg" width="360" alt="the same frame as a depth map"></p>
 
-Technically: monocular video depth estimation. The model predicts relative inverse depth
-for every frame; ReShot normalises it once over the whole clip to 8-bit grey (near = white)
-and encodes it as a standard depth-map video.
+You give that grey video to your video model as the reference and describe the people and the look in the prompt. The model takes the moves from the video and everything else from your words.
 
-Give the depth map to your video model along with a prompt for the look, and you get the
-reference's blocking and camera with your cast in it.
+Technically: monocular video depth estimation. The model predicts relative inverse depth for every frame; ReShot normalises it once over the whole clip to 8-bit grey (near = white) and encodes it as a standard depth-map video.
+
+## How to use it
+
+The three takes in the demo were made exactly this way. Every file involved is in this repo, so you can repeat it.
+
+### 1. Install
 
 ```bash
-pip install git+https://github.com/maosika-ai/reshot
+pip install git+https://github.com/maosika-ai/reshot        # needs ffmpeg on PATH
+```
+
+No ffmpeg? `pip install "reshot[ffmpeg] @ git+https://github.com/maosika-ai/reshot"` bundles one. The model weights (111 MB) download on first run.
+
+### 2. Make the depth map
+
+```bash
 reshot reference.mp4 -o depth.mp4 --target seedance
 ```
 
-That's the whole thing.
+`--target seedance` sets 24 fps, H.264, a frame size that is a multiple of 16 and at least 407,696 pixels, up to 15 seconds — the reference-video rules of the Seedance API. For MiniMax H3 use `--target h3` (multiples of 32). On an RTX 4090 a 12-second clip takes about 20 seconds; on a MacBook a few minutes.
 
-## Works with the models you already use.
+### 3. Give it to the video model
 
-**Seedance 2.0 and 2.5.** Add the depth map as a reference video and ask for its motion
-and camera. The depth map meets the API's reference-video requirements out of the box —
-24 fps, H.264, sized for the model — and because it carries no likeness, it passes the
-content checks that stop real footage.
+**Seedance 2.0 / 2.5.** Upload `depth.mp4` as a reference video. In the prompt, point at it and describe the people and the look:
 
 ```
-参考@视频1的动作与运镜。两名武者在雨夜屋顶对决，黑色劲装，冷蓝月光，电影感。
+参考@视频1的动作与运镜，顺序与视频保持一致。
+一名穿深绿色丝绒旗袍的女子在狭窄的金属走廊里与三名黑衣守卫搏斗，冷蓝走廊光，红色警示灯，电影感。
 ```
 
-**MiniMax H3 Fun ControlNet.** Use the depth map as the depth condition. 24 fps, frame size
-a multiple of 32, up to 15 seconds — the preset handles it.
+**MiniMax H3.** Attach `depth.mp4` as `<Video 1>`. If you want a specific face, attach a character sheet as `<Picture 1>`. These are the three sheets used for the demo:
 
-**Wan VACE, and any depth ControlNet.** It's a standard near-white depth video. If your
-model reads depth, it reads this.
+<p align="center"><img src="docs/img/step3_sheets.jpg" width="720" alt="the three character sheets used as Picture 1"></p>
 
-| `--target` | fps | frame size | length | |
+MiniMax H3 wants its prompt in a fixed six-section format. The full prompts for all three takes are in [`docs/prompts/`](docs/prompts/). The part that does the work is how `<Video 1>` is defined and what it is allowed to transfer:
+
+```
+<Subject 3> is the fight choreography and camera movement shown in <Video 1>, a grey depth map
+in which near objects are white and far objects are black: one fighter leans on a corridor wall
+in close-up, kicks off it to tear down a pipe, fights several opponents, is grabbed from behind
+by the largest and throws him, slams the last one into a wall panel, wipes the mouth in close-up,
+then walks away through a door past the fallen opponents.
+
+<Subject 3>: attribute_transfer - every action, position, timing and camera move of <Video 1>
+is transferred onto <Subject 1> and <Subject 2>; its grey depth look is not transferred.
+```
+
+Two things in there matter. **Say in words what happens in the grey clip** — the model reads the depth map far better when the prompt tells it what the blobs are doing. **Say that the grey look is not to be copied**, or you may get a grey film back.
+
+### 4. What comes out
+
+<p align="center"><img src="docs/img/step4_takes.jpg" width="720" alt="the three takes"></p>
+
+Left to right: [Jiang Xue](docs/prompts/take1_jiangxue_armor.txt) in bronze armour, [Su Wan](docs/prompts/take2_suwan_qipao.txt) in a green velvet qipao, and a [rabbit boxer](docs/prompts/take3_rabbit_boxer.txt) against a wolf, a tiger and a bear as a 3D animated feature. Same six shots, same close-up at the start, same walk out through the door at the end. The reference clip itself was a MiniMax H3 text-to-video render, so nobody's likeness was involved at any step.
+
+## What transfers, and what doesn't
+
+**Transfers:** who stands where, how big they are relative to each other, every move and its timing, the cuts, and the camera — push-ins, tracking, handheld shake.
+
+**Doesn't:** faces (use a character sheet), clothes, lighting, colour, props in detail, and anything smaller than a hand. Those come from your prompt and your reference images.
+
+Things we learned making the demo:
+
+- **Keep the reference under 15 seconds** (Seedance's limit) and cut it to the shots you want before running ReShot. Everything in the clip gets copied, including the boring part at the end.
+- **For MiniMax H3, make the depth map small: `--target h3 --max-res 320`** (that is 320×176 for a 16:9 clip). A full-size grey silhouette starts to pull the character's face shape towards the person in the reference; a small one carries the moves without the shape.
+- **Change the species, keep the size ratio.** The bear take works because the prompt says the bear is "about 1.3× the rabbit, never more than 1.5×". The depth map already says who is bigger; the prompt must not contradict it.
+- **Plain clothes on extras, no logos.** Whatever the prompt leaves open, the model fills with text and badges.
+
+## Presets
+
+| `--target` | fps | frame size | length | for |
 |---|---|---|---|---|
 | `seedance` | 24 | ×16, ≥ 407,696 px | ≤ 15 s | Seedance 2.0 / 2.5 reference video |
-| `h3` | 24 | ×32 | ≤ 15 s | MiniMax H3 Fun ControlNet |
+| `h3` | 24 | ×32 | ≤ 15 s | MiniMax H3 (reference video or Fun ControlNet depth) |
 | `wan` | 16 | ×16 | – | Wan 2.1 VACE |
-| `none` | source | even | – | anything |
+| `none` | source | even | – | anything that reads a depth video |
 
-## Steady by design.
+`reshot --help` lists every option; the [user guide](docs/USAGE.md) explains them.
 
-A depth map is only useful if the model trusts it. So ReShot is built around the details
-that make a depth video hold still.
-
-- **It sees the whole clip.** The model works on overlapping windows of 32 frames and
-  aligns them, so depth doesn't jitter from frame to frame.
-- **One scale for the entire shot.** Brightness means distance, and it means the same
-  distance in frame 1 and frame 300. A wall doesn't pulse because someone walked past it.
-- **Nothing the model didn't ask for.** Frames are picked by timestamp, so 24 fps is
-  really 24. Frame size is trimmed to the model's grid, never padded with black. The
-  encode is clean enough that the depth gradient has no banding.
-
-## Made for the pace of a studio.
-
-A 12-second shot takes about 20 seconds on an RTX 4090 — 70 ms a frame, 31 with the
-fast setting. It runs on a MacBook. It needs about 4 GB of memory for a 720p clip, and it
-tells you before it starts if a clip won't fit.
-
-Batch a folder of references in a shell loop, or call it from Python:
+## For developers
 
 ```python
 from pathlib import Path
@@ -97,26 +118,19 @@ from reshot import RunConfig, run
 run(RunConfig(input=Path("reference.mp4"), output=Path("depth.mp4"), target="seedance"))
 ```
 
-## Yours to ship.
+Three details make the output something a video model will actually follow:
 
-ReShot is Apache-2.0, and so is the model it runs by default — Video Depth Anything
-Small, from ByteDance (CVPR 2025), vendored under `reshot/third_party/`. Use it in a
-product, a pipeline, a service. The larger research-only variants exist and are clearly
-labelled; they never load unless you ask.
+- **One scale for the whole clip.** Depth is normalised once over all frames, never per frame, so a wall keeps the same grey when someone walks past it. Per-frame normalisation makes the scene "breathe".
+- **Frames picked by timestamp.** 30 fps → 24 fps really is 24; nothing is duplicated or dropped in a pattern the model could learn.
+- **Cropped, never padded.** Frame size is trimmed to the model's grid. A black border would read as a far wall.
 
-## Get started
+The model is Video Depth Anything Small (ByteDance, CVPR 2025). It works on overlapping 32-frame windows and aligns them, so depth doesn't jitter between frames. It needs about 4 GB of RAM for a 720p clip and refuses up front if a clip won't fit. A `fake` backend runs the whole pipeline without a model for your own tests. Errors that are yours to fix are `ReshotError` subclasses with an exit code and a concrete fix in the message.
 
-```bash
-pip install git+https://github.com/maosika-ai/reshot          # ffmpeg on PATH
-pip install "reshot[ffmpeg] @ git+https://github.com/maosika-ai/reshot"   # or bundle one
-reshot --help
-```
+## License
 
-Weights (111 MB) download on first run. Behind a firewall: `export HF_ENDPOINT=https://hf-mirror.com`.
+Apache-2.0, and so is the default model. The vendored model code is under `reshot/third_party/`. Use it in a product, a pipeline, a service. The larger research-only weights (Base, Large) are CC-BY-NC and never load unless you ask for them.
 
-Everything else — every option, presets, recipes for each model, troubleshooting — is in
-the **[user guide](docs/USAGE.md)**. Issues and pull requests are welcome; see
-[CONTRIBUTING.md](CONTRIBUTING.md).
+Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## About Maosika 猫斯卡
 

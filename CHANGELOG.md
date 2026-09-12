@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.3.1 — 2026-09-12
+- README rewritten as a manual: the problem → what it does → four steps with the real prompts and character sheets from the demo (`docs/prompts/`, `docs/refs/`) → what transfers and what doesn't → presets → developers.
 - New demo: a corridor fight → depth map → three generated takes (two humans, one bear), `docs/demo-fight.gif` + `docs/demo-fight.mp4`; social preview card updated.
 - Wording: the output is called what it is — a **depth map** (relative inverse depth, monocular
   video depth estimation), no longer a "blockout" (that term means untextured 3D geometry).
