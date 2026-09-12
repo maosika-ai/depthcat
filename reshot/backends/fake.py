@@ -2,7 +2,7 @@
 
 For exercising everything *around* inference — I/O, encoding, presets, metrics,
 remote job runners — in CI or on a laptop, in milliseconds and without downloads.
-Select with `--backend fake` (or the env var `DEPTHCAT_FAKE_BACKEND=1`)."""
+Select with `--backend fake` (or the env var `RESHOT_FAKE_BACKEND=1`)."""
 
 from __future__ import annotations
 

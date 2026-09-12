@@ -1,6 +1,6 @@
 """Planning is pure arithmetic — test it without a model."""
 
-from depthcat.planning import (
+from reshot.planning import (
     HOST_RAM_BUDGET_RATIO,
     estimate_host_bytes,
     memory_verdict,

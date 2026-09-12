@@ -10,7 +10,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: python -m pip install ruff
-      - run: ruff check depthcat tests && ruff format --check depthcat tests
+      - run: ruff check reshot tests && ruff format --check reshot tests
 
   unit:
     name: unit (${{ matrix.os }}, py${{ matrix.python }})

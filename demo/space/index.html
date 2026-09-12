@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ReShot — copy the shot, not the actors · by Maosika 猫斯卡</title>
+<meta name="description" content="ReShot turns a reference video into a depth blockout for Seedance 2.0/2.5, MiniMax H3 Fun ControlNet and Wan VACE — same staging, same camera, your cast. Open-sourced by Maosika 猫斯卡 (www.maosika.com), the AI short-drama production system.">
+<link rel="canonical" href="https://huggingface.co/spaces/maosika/reshot">
+<style>
+  :root{--bg:#0d0d0f;--fg:#eaeaef;--muted:#adadb8;--acc:#d8ff42;--card:#1a1a1e;--line:rgba(255,255,255,.08)}
+  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Noto Sans CJK SC",sans-serif}
+  main{max-width:820px;margin:0 auto;padding:48px 24px 80px}
+  h1{font-size:44px;letter-spacing:-.02em;margin:0 0 8px}h1 span{color:var(--acc)}
+  .tag{font-size:20px;color:var(--muted);margin:0 0 28px}
+  img.demo{width:100%;border-radius:14px;border:1px solid var(--line);display:block}
+  .cap{font-size:13px;color:var(--muted);text-align:center;margin:8px 0 32px}
+  pre{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow:auto;font-size:14px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .row{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}
+  a.btn{background:var(--acc);color:#2a3208;font-weight:700;padding:12px 18px;border-radius:12px;text-decoration:none}
+  a.ghost{border:1px solid var(--line);color:var(--fg);padding:12px 18px;border-radius:12px;text-decoration:none}
+  h2{font-size:22px;margin:40px 0 12px}
+  table{width:100%;border-collapse:collapse;font-size:15px}td,th{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--muted);font-weight:600}
+  .zh{color:var(--muted)}
+  .about{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+  footer{margin-top:56px;font-size:13px;color:var(--muted)}
+  a{color:var(--acc)}
+</style>
+</head>
+<body><main>
+<h1>Re<span>Shot</span></h1>
+<p class="tag"><b>Copy the shot, not the actors.</b> Turn a reference video into a depth blockout your video model can follow — same staging, same camera, your cast, your style.<br><span class="zh"><b>复制走位，不复制演员。</b>把参考视频抽成视频模型能跟着走的深度白模——走位一样、镜头一样，人是你的，画风是你的。</span></p>
+<p class="zh"><sub>Open-sourced by <a href="https://www.maosika.com">Maosika 猫斯卡</a>, the AI short-drama production system · 由 AI 短剧生产系统 <a href="https://www.maosika.com">猫斯卡</a> 开源</sub></p>
+
+<img class="demo" src="demo.gif" alt="left: reference video, right: ReShot depth blockout">
+<p class="cap">left: reference · right: ReShot blockout — near is white, far is black, every frame in step with the last</p>
+
+<pre><code>pip install git+https://github.com/maosika-ai/reshot
+reshot reference.mp4 -o blockout.mp4 --target seedance</code></pre>
+
+<div class="row">
+  <a class="btn" href="https://github.com/maosika-ai/reshot">GitHub · code &amp; docs</a>
+  <a class="ghost" href="https://github.com/maosika-ai/reshot/blob/main/docs/USAGE.md">User guide</a>
+  <a class="ghost" href="https://github.com/maosika-ai/reshot/blob/main/docs/USAGE.zh-CN.md">中文手册</a>
+  <a class="ghost" href="https://www.maosika.com">Maosika 猫斯卡 · make AI short drama</a>
+</div>
+
+<h2>Every shot is two things. <span class="zh">/ 每个镜头都是两样东西</span></h2>
+<p>Where people are and how the camera moves — and who they are and what it looks like. A reference clip gives you both at once; you only wanted the first. ReShot keeps the staging and the camera and drops everything else: no faces, no wardrobe, no style. Give the blockout to your model with a prompt for the look, and you get the reference's blocking with your cast in it.</p>
+<p class="zh">走位和运镜，以及画面里的人和风格。参考片两样一起给你，你只想要前一样。ReShot 留下走位和镜头，去掉其余一切——没有脸、没有服装、没有画风。把白模交给模型，再告诉它你要的样子，就得到参考片的走位、你的人。</p>
+
+<h2>Works with the models you already use. <span class="zh">/ 你在用的模型都能接</span></h2>
+<table>
+<tr><th><code>--target</code></th><th>fps</th><th>size</th><th>for</th></tr>
+<tr><td><b>seedance</b></td><td>24</td><td>×16, ≥ 407,696 px, ≤ 15 s</td><td><b>Seedance 2.0 / 2.5</b> — attach as a reference video, prompt <code>参考@视频1的动作与运镜…</code>. Meets the official reference-video spec (24 fps, H.264, size floor) out of the box.</td></tr>
+<tr><td>h3</td><td>24</td><td>×32, ≤ 15 s</td><td><a href="https://huggingface.co/alibaba-pai/MiniMax-H3-Fun-Controlnet-Union">MiniMax H3 Fun ControlNet</a> — depth condition</td></tr>
+<tr><td>wan</td><td>16</td><td>×16</td><td>Wan 2.1 VACE (values from the docs, not yet verified end-to-end)</td></tr>
+<tr><td>none</td><td>source</td><td>even</td><td>any depth ControlNet</td></tr>
+</table>
+
+<h2>Steady by design. <span class="zh">/ 稳，是设计出来的</span></h2>
+<table>
+<tr><td>Temporal consistency</td><td>a native video depth model — 32-frame windows, overlap, keyframe alignment — so walls don't breathe and floors don't flicker</td></tr>
+<tr><td>Normalisation</td><td>once over the whole clip, never per frame</td></tr>
+<tr><td>Frame rate</td><td>by timestamp: 30 → 24 really is 24</td></tr>
+<tr><td>Output size</td><td>cropped to the model's multiple — never padded; a black border reads to the generator as a far wall</td></tr>
+<tr><td>Encoding</td><td>x264 CRF 12, no banding in the control signal</td></tr>
+<tr><td>Memory</td><td>inference at model resolution: ~4 GB host RAM for 12 s of 720p, and it refuses up front instead of swapping</td></tr>
+</table>
+
+<h2>Measured <span class="zh">/ 实测</span></h2>
+<table>
+<tr><th>device</th><th>ms / frame</th><th>host RAM</th></tr>
+<tr><td>RTX 4090, fp16</td><td>70 (31 with <code>--input-size 364</code>)</td><td>4.5 GB</td></tr>
+<tr><td>Apple M2 Max, fp32</td><td>~500</td><td>~4 GB</td></tr>
+</table>
+
+<h2>Yours to ship. <span class="zh">/ 拿去用</span></h2>
+<p>Apache-2.0 end to end — code and the default model (Video Depth Anything Small). CLI and a Python API with typed errors and exit codes; a <code>fake</code> backend runs the whole pipeline in milliseconds for your own tests. Runs on CUDA, Apple Silicon and CPU.</p>
+
+<h2>About Maosika 猫斯卡 <span class="zh">/ 关于猫斯卡</span></h2>
+<div class="about">
+<p>ReShot is open-sourced by <a href="https://www.maosika.com"><b>Maosika 猫斯卡</b></a> (<a href="https://www.maosika.com">www.maosika.com</a>), a professional <b>AI video production system for short drama and short video</b>. Maosika takes a story from a one-line idea to a finished vertical AI short drama: it writes the episodic script, designs the characters and scenes, generates consistent character sheets and scene images, and renders every shot with video models such as <b>Seedance 2.0 / 2.5</b> and <b>MiniMax H3</b> — a crew of digital specialists handling each step. Individual screenwriters, MCNs and short-drama companies use Maosika to produce AI short drama every day. ReShot is the depth-blockout step of that pipeline.</p>
+<p class="zh">ReShot 由 <a href="https://www.maosika.com"><b>猫斯卡</b></a>（www.maosika.com）开源。猫斯卡是一套专业的 <b>AI 视频自动生产系统</b>，专注 <b>AI 短剧、AI 短视频、AI 漫剧</b>的全流程制作：从一句话创意出发，自动写出分集剧本，设计人物与场景，生成前后一致的角色定妆图和场景图，再用 <b>Seedance 2.0 / 2.5</b>、<b>MiniMax H3</b> 等视频模型把每一镜拍出来——每个环节都由对应的数字专家接手。个人编剧、MCN 机构和短剧公司每天都在用猫斯卡生产 AI 短剧。ReShot 就是这条生产线里的「深度白模」环节。</p>
+<p><a class="btn" href="https://www.maosika.com">Make AI short drama at maosika.com · 去猫斯卡做 AI 短剧</a></p>
+</div>
+
+<footer>Apache-2.0 · model code vendored from <a href="https://github.com/DepthAnything/Video-Depth-Anything">Video Depth Anything</a> (CVPR 2025) · built at <a href="https://www.maosika.com">Maosika 猫斯卡 · www.maosika.com</a>. This Space is a landing page; the tool runs locally.</footer>
+</main></body></html>

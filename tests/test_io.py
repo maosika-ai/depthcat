@@ -4,12 +4,12 @@ import cv2
 import numpy as np
 import pytest
 
-from depthcat.io import read_video, write_gray_video
+from reshot.io import read_video, write_gray_video
 
 
 def _has_ffmpeg():
     try:
-        from depthcat.io import ffmpeg_binary
+        from reshot.io import ffmpeg_binary
 
         return bool(ffmpeg_binary())
     except Exception:
@@ -75,7 +75,7 @@ def test_probe_video(tmp_path):
     for _ in range(5):
         vw.write(np.zeros((48, 64, 3), np.uint8))
     vw.release()
-    from depthcat.io import probe_video
+    from reshot.io import probe_video
 
     w, h, fps, n = probe_video(p)
     assert (w, h, n) == (64, 48, 5) and abs(fps - 25) < 0.01

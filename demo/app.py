@@ -1,8 +1,8 @@
-"""depthcat — Hugging Face Space demo.
+"""reshot — Hugging Face Space demo.
 
 Upload a short clip, get a depth blockout video back. Runs on the free CPU tier, so the
 demo caps the clip (see LIMITS) and defaults to the faster 364-px model input. The same
-`depthcat.run()` the CLI uses does all the work; this file is only the UI.
+`reshot.run()` the CLI uses does all the work; this file is only the UI.
 """
 
 from __future__ import annotations
@@ -13,17 +13,17 @@ from pathlib import Path
 
 import gradio as gr
 
-from depthcat import RunConfig, __version__, run
-from depthcat.errors import DepthcatError
+from reshot import RunConfig, __version__, run
+from reshot.errors import ReshotError
 
 LIMITS = {"max_seconds": 4, "max_res": 640}  # free CPU: ~2–4 s per frame at model resolution
-FAKE = bool(os.environ.get("DEPTHCAT_FAKE_BACKEND"))  # used by the local smoke test only
+FAKE = bool(os.environ.get("RESHOT_FAKE_BACKEND"))  # used by the local smoke test only
 
 
 def make_blockout(video: str | None, target: str, input_size: int, invert: bool, gamma: float):
     if not video:
         raise gr.Error("Upload a video first.")
-    workdir = Path(tempfile.mkdtemp(prefix="depthcat-"))
+    workdir = Path(tempfile.mkdtemp(prefix="reshot-"))
     out = workdir / "blockout.mp4"
     fps_cap = {"none": 24.0, "seedance": None, "h3": None, "wan": None}[target]  # keep the free CPU honest
     max_frames = int(LIMITS["max_seconds"] * 24)
@@ -43,25 +43,25 @@ def make_blockout(video: str | None, target: str, input_size: int, invert: bool,
     )
     try:
         res = run(cfg)
-    except DepthcatError as exc:
+    except ReshotError as exc:
         raise gr.Error(str(exc)) from exc
     note = (
         f"{res.frames} frames @ {res.fps:.0f} fps · {res.width}×{res.height} · "
-        f"{res.ms_per_frame:.0f} ms/frame on {res.device} · depthcat {__version__}"
+        f"{res.ms_per_frame:.0f} ms/frame on {res.device} · reshot {__version__}"
     )
     return str(out), note
 
 
-with gr.Blocks(title="depthcat") as demo:
+with gr.Blocks(title="ReShot") as demo:
     gr.Markdown(
         f"""
-# depthcat
+# ReShot
 **Video → depth blockout** for video generation: Seedance reference video, MiniMax H3 Fun ControlNet, Wan VACE, ….
 Keeps a shot's staging and camera, drops faces, wardrobe and style.
-Code and CLI: [github.com/maosika-ai/depthcat](https://github.com/maosika-ai/depthcat) · Apache-2.0
+Code and CLI: [github.com/maosika-ai/reshot](https://github.com/maosika-ai/reshot) · Apache-2.0
 
 *This free-CPU demo processes the first **{LIMITS["max_seconds"]} s** at ≤ {LIMITS["max_res"]} px.
-Expect 1–3 minutes. For full clips and GPU speed, run it locally: `pip install git+https://github.com/maosika-ai/depthcat`.*
+Expect 1–3 minutes. For full clips and GPU speed, run it locally: `pip install git+https://github.com/maosika-ai/reshot`.*
 """
     )
     with gr.Row():

@@ -1,4 +1,4 @@
-# depthcat — user guide
+# ReShot — user guide
 
 [中文版](USAGE.zh-CN.md)
 
@@ -16,10 +16,10 @@ Requirements: Python ≥ 3.10, PyTorch ≥ 2.1 (CPU, CUDA or Apple MPS), ffmpeg.
 
 ```bash
 # with your own ffmpeg on PATH
-pip install git+https://github.com/maosika-ai/depthcat
+pip install git+https://github.com/maosika-ai/reshot
 
 # no ffmpeg? this extra bundles a static binary
-pip install "depthcat[ffmpeg] @ git+https://github.com/maosika-ai/depthcat"
+pip install "reshot[ffmpeg] @ git+https://github.com/maosika-ai/reshot"
 ```
 
 PyTorch is not pinned to a CUDA version; install the build for your machine first if
@@ -32,7 +32,7 @@ In China: `export HF_ENDPOINT=https://hf-mirror.com`.
 ## Command line
 
 ```
-depthcat INPUT -o OUTPUT [options]
+reshot INPUT -o OUTPUT [options]
 ```
 
 ### Model
@@ -91,7 +91,7 @@ Frame size is **cropped**, never padded: a padded black border reads to the gene
 
 ```python
 from pathlib import Path
-from depthcat import RunConfig, run, plan
+from reshot import RunConfig, run, plan
 
 cfg = RunConfig(input=Path("in.mp4"), output=Path("out.mp4"), target="h3", metrics=Path("m.json"))
 print(plan(cfg))          # sizes, frame counts, RAM estimate — no decoding yet
@@ -102,14 +102,14 @@ print(result.frames, result.fps, result.ms_per_frame, result.peak_rss_bytes)
 Lower-level pieces, for your own post-processing:
 
 ```python
-from depthcat import extract, to_gray, upsample_frames, write_gray_video
+from reshot import extract, to_gray, upsample_frames, write_gray_video
 
 depths, fps = extract("in.mp4")                     # float32 [T, H, W], larger = closer
 gray = to_gray(depths, clip_percent=0.5, gamma=1.2)  # uint8 [T, H, W], whole-clip normalised
 write_gray_video(upsample_frames(gray, 1280, 736), "out.mp4", fps, size=(1280, 736))
 ```
 
-Errors that are the *user's* to fix are subclasses of `depthcat.DepthcatError` and carry an
+Errors that are the *user's* to fix are subclasses of `reshot.ReshotError` and carry an
 `exit_code`; anything else is a bug.
 
 `RunConfig(..., backend="fake")` runs the entire pipeline with a synthetic depth field and no
@@ -119,7 +119,7 @@ model — handy for testing your own integration in milliseconds.
 
 ### Seedance 2.0 / 2.5 (reference video)
 
-1. `depthcat ref.mp4 -o ref_depth.mp4 --target seedance` (24 fps, ×16, ≤ 15 s).
+1. `reshot ref.mp4 -o ref_depth.mp4 --target seedance` (24 fps, ×16, ≤ 15 s).
 2. Submit it as a **reference video** (API: `role: "reference_video"`; in the console, attach it as
    a video reference) and address it in the prompt as `@视频1`, asking for its motion and camera:
 
@@ -143,7 +143,7 @@ model — handy for testing your own integration in milliseconds.
 
 ### MiniMax H3 Fun ControlNet (ComfyUI)
 
-1. `depthcat ref.mp4 -o ref_depth.mp4 --target h3` (24 fps, ×32, ≤ 15 s).
+1. `reshot ref.mp4 -o ref_depth.mp4 --target h3` (24 fps, ×32, ≤ 15 s).
 2. In ComfyUI with the [Fun ControlNet Union](https://huggingface.co/alibaba-pai/MiniMax-H3-Fun-Controlnet-Union)
    weights, load `ref_depth.mp4` as the control video, choose the **depth** condition, write your
    prompt for the *look* (cast, wardrobe, lighting, style). Staging and camera come from the control video.
@@ -152,22 +152,22 @@ model — handy for testing your own integration in milliseconds.
 
 ### Wan 2.1 VACE
 
-`depthcat ref.mp4 -o ref_depth.mp4 --target wan`, then use it as the depth control video in your
+`reshot ref.mp4 -o ref_depth.mp4 --target wan`, then use it as the depth control video in your
 VACE workflow. Report back if the fps/size values need adjusting — this preset has not been
 verified end-to-end yet.
 
 ### Batch
 
 ```bash
-for f in clips/*.mp4; do depthcat "$f" -o "out/$(basename "$f" .mp4)_depth.mp4" --target h3 --metrics "out/$(basename "$f" .mp4).json"; done
+for f in clips/*.mp4; do reshot "$f" -o "out/$(basename "$f" .mp4)_depth.mp4" --target h3 --metrics "out/$(basename "$f" .mp4).json"; done
 ```
 
 The model loads once per process; for hundreds of clips write a short Python loop with
 `extract()` and reuse the backend object:
 
 ```python
-from depthcat.backends import get_backend
-from depthcat import read_video, to_gray, write_gray_video
+from reshot.backends import get_backend
+from reshot import read_video, to_gray, write_gray_video
 b = get_backend("vda", model="small")
 for src in sources:
     frames, fps = read_video(src, max_res=900)
@@ -176,7 +176,7 @@ for src in sources:
 
 ### Long videos
 
-Everything is held in RAM for the whole clip (frames + depth). depthcat estimates the need and
+Everything is held in RAM for the whole clip (frames + depth). reshot estimates the need and
 refuses beyond half of physical RAM with a `--max-frames` suggestion. For a 3-minute clip, split
 it into ≤ 15 s pieces first (`ffmpeg -ss … -t 15 …`); the generators want short control videos anyway.
 
@@ -204,7 +204,7 @@ input video ─▶ probe ─▶ plan (sizes, frames, RAM) ─▶ decode at model
   (CVPR 2025). Its temporal module is what keeps the depth stable across frames; single-image
   models flicker. The model code is vendored unmodified (two import lines) under `third_party/`.
 - **Resolution**: the model works on a 518-px short side. Feeding larger frames only inflates the
-  float depth kept per frame; depthcat decodes at that size and upscales the 8-bit result.
+  float depth kept per frame; reshot decodes at that size and upscales the 8-bit result.
 - **Normalisation**: `(d − min) / (max − min)` over *all* frames; optional percentile clip.
 - **Encoding**: `libx264 -crf 12 -pix_fmt yuv420p -g 2·fps -movflags +faststart`.
 
@@ -217,7 +217,7 @@ input video ─▶ probe ─▶ plan (sizes, frames, RAM) ─▶ decode at model
 | exit 5 / weights download fails | no route to huggingface.co | `export HF_ENDPOINT=https://hf-mirror.com`, or `--checkpoint` |
 | exit 3 | clip too long for RAM | use the suggested `--max-frames`, split the clip |
 | very slow on Mac | torch < 2.9, or fp16 forced | `pip install -U torch`; never force fp16 on MPS |
-| output is 30 fps although `--fps 24` | source fps < 24 | depthcat never upsamples |
+| output is 30 fps although `--fps 24` | source fps < 24 | reshot never upsamples |
 | output smaller than source | `--target` crop or `--max-res` | expected; see Targets |
 | banding in the blockout | `--crf` raised | keep ≤ 14 |
 | people look flat / merged with background | scene has little depth range | try `--clip 0.5 --gamma 1.3` |

@@ -25,7 +25,7 @@ def _synthetic_clip(path, frames=8, w=224, h=160):
 
 
 def test_extract_and_write(tmp_path):
-    from depthcat import extract, to_gray, write_gray_video
+    from reshot import extract, to_gray, write_gray_video
 
     src = tmp_path / "src.mp4"
     _synthetic_clip(src)
@@ -39,7 +39,7 @@ def test_extract_and_write(tmp_path):
 
 
 def test_cli_end_to_end(tmp_path):
-    from depthcat.cli import main
+    from reshot.cli import main
 
     src = tmp_path / "src.mp4"
     _synthetic_clip(src)

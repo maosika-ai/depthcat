@@ -1,4 +1,4 @@
-# depthcat 使用手册
+# ReShot 使用手册
 
 [English](USAGE.md)
 
@@ -16,13 +16,13 @@
 
 ```bash
 # 自己有 ffmpeg
-pip install git+https://github.com/maosika-ai/depthcat
+pip install git+https://github.com/maosika-ai/reshot
 
 # 没有 ffmpeg？这个 extra 自带一个静态二进制
-pip install "depthcat[ffmpeg] @ git+https://github.com/maosika-ai/depthcat"
+pip install "reshot[ffmpeg] @ git+https://github.com/maosika-ai/reshot"
 ```
 
-PyTorch 不锁 CUDA 版本；如果 `pip` 装错了，先按 https://pytorch.org/get-started/locally/ 装好再装 depthcat。
+PyTorch 不锁 CUDA 版本；如果 `pip` 装错了，先按 https://pytorch.org/get-started/locally/ 装好再装 reshot。
 
 模型权重（111 MB）首次运行时从 Hugging Face 下到 `~/.cache/huggingface`。
 离线机器：把这个缓存目录拷过去，或用 `--checkpoint /路径/video_depth_anything_vits.pth`。
@@ -31,7 +31,7 @@ PyTorch 不锁 CUDA 版本；如果 `pip` 装错了，先按 https://pytorch.org
 ## 命令行
 
 ```
-depthcat 输入 -o 输出 [选项]
+reshot 输入 -o 输出 [选项]
 ```
 
 ### 模型
@@ -90,7 +90,7 @@ depthcat 输入 -o 输出 [选项]
 
 ```python
 from pathlib import Path
-from depthcat import RunConfig, run, plan
+from reshot import RunConfig, run, plan
 
 cfg = RunConfig(input=Path("in.mp4"), output=Path("out.mp4"), target="h3", metrics=Path("m.json"))
 print(plan(cfg))          # 尺寸、帧数、内存估算——此时还没解码
@@ -101,14 +101,14 @@ print(result.frames, result.fps, result.ms_per_frame, result.peak_rss_bytes)
 更底层的零件，给自己做后处理用：
 
 ```python
-from depthcat import extract, to_gray, upsample_frames, write_gray_video
+from reshot import extract, to_gray, upsample_frames, write_gray_video
 
 depths, fps = extract("in.mp4")                     # float32 [T, H, W]，越大越近
 gray = to_gray(depths, clip_percent=0.5, gamma=1.2)  # uint8 [T, H, W]，整段归一
 write_gray_video(upsample_frames(gray, 1280, 736), "out.mp4", fps, size=(1280, 736))
 ```
 
-属于"用户该修"的错误都是 `depthcat.DepthcatError` 的子类、带 `exit_code`；其余都是 bug。
+属于"用户该修"的错误都是 `reshot.ReshotError` 的子类、带 `exit_code`；其余都是 bug。
 
 `RunConfig(..., backend="fake")` 用合成深度场跑完整条流水线、不载模型——几毫秒验证你自己的集成。
 
@@ -116,7 +116,7 @@ write_gray_video(upsample_frames(gray, 1280, 736), "out.mp4", fps, size=(1280, 7
 
 ### Seedance 2.0 / 2.5（参考视频）
 
-1. `depthcat 参考.mp4 -o 参考_depth.mp4 --target seedance`（24 fps、16 倍数、≤15 秒）。
+1. `reshot 参考.mp4 -o 参考_depth.mp4 --target seedance`（24 fps、16 倍数、≤15 秒）。
 2. 作为**参考视频**提交（API 里 `role: "reference_video"`；控制台里当视频参考挂上），
    提示词用 `@视频1` 指向它，要它的动作与运镜：
 
@@ -139,7 +139,7 @@ write_gray_video(upsample_frames(gray, 1280, 736), "out.mp4", fps, size=(1280, 7
 
 ### MiniMax H3 Fun ControlNet（ComfyUI）
 
-1. `depthcat 参考.mp4 -o 参考_depth.mp4 --target h3`（24 fps、32 倍数、≤15 秒）。
+1. `reshot 参考.mp4 -o 参考_depth.mp4 --target h3`（24 fps、32 倍数、≤15 秒）。
 2. ComfyUI 里装 [Fun ControlNet Union](https://huggingface.co/alibaba-pai/MiniMax-H3-Fun-Controlnet-Union) 权重，
    把 `参考_depth.mp4` 作为控制视频、条件选 **depth**，提示词只写**长相**（人物、服装、光线、画风）。
    走位和镜头由控制视频决定。
@@ -147,20 +147,20 @@ write_gray_video(upsample_frames(gray, 1280, 736), "out.mp4", fps, size=(1280, 7
 
 ### Wan 2.1 VACE
 
-`depthcat 参考.mp4 -o 参考_depth.mp4 --target wan`，在 VACE 工作流里当深度控制视频用。
+`reshot 参考.mp4 -o 参考_depth.mp4 --target wan`，在 VACE 工作流里当深度控制视频用。
 这个预设还没端到端验过，fps/尺寸如需调整欢迎反馈。
 
 ### 批量
 
 ```bash
-for f in clips/*.mp4; do depthcat "$f" -o "out/$(basename "$f" .mp4)_depth.mp4" --target h3 --metrics "out/$(basename "$f" .mp4).json"; done
+for f in clips/*.mp4; do reshot "$f" -o "out/$(basename "$f" .mp4)_depth.mp4" --target h3 --metrics "out/$(basename "$f" .mp4).json"; done
 ```
 
 每个进程载一次模型；几百条片子的话写个 Python 循环复用后端对象：
 
 ```python
-from depthcat.backends import get_backend
-from depthcat import read_video, to_gray, write_gray_video
+from reshot.backends import get_backend
+from reshot import read_video, to_gray, write_gray_video
 b = get_backend("vda", model="small")
 for src in sources:
     frames, fps = read_video(src, max_res=900)
@@ -169,7 +169,7 @@ for src in sources:
 
 ### 长视频
 
-整段视频的帧和深度都在内存里。depthcat 会先估算，超过物理内存一半就拒跑并给 `--max-frames` 建议。
+整段视频的帧和深度都在内存里。reshot 会先估算，超过物理内存一半就拒跑并给 `--max-frames` 建议。
 三分钟的片子先用 `ffmpeg -ss … -t 15 …` 切成 ≤15 秒的段——生成模型本来也只吃短的控制视频。
 
 ### Apple 芯片
@@ -192,7 +192,7 @@ MPS 上 fp16 跑不完，所以强制 fp32。736×1280 约 0.5 秒/帧，12 秒�
 
 - **模型**：[Video Depth Anything](https://github.com/DepthAnything/Video-Depth-Anything)（CVPR 2025）。
   它的时序模块是深度不闪的原因；单图模型逐帧跑必闪。模型代码原样 vendored 在 `third_party/`（只改两行 import）。
-- **分辨率**：模型工作在短边 518 px。喂更大的帧只会让每帧存的浮点深度变大；depthcat 按这个尺寸解码，放大的是 8 位结果。
+- **分辨率**：模型工作在短边 518 px。喂更大的帧只会让每帧存的浮点深度变大；reshot 按这个尺寸解码，放大的是 8 位结果。
 - **归一化**：`(d − min) / (max − min)` 对**全部帧**做一次；可选百分位裁剪。
 - **编码**：`libx264 -crf 12 -pix_fmt yuv420p -g 2·fps -movflags +faststart`。
 
@@ -205,7 +205,7 @@ MPS 上 fp16 跑不完，所以强制 fp32。736×1280 约 0.5 秒/帧，12 秒�
 | 退出码 5 / 权重下载失败 | 连不上 huggingface.co | `export HF_ENDPOINT=https://hf-mirror.com`，或 `--checkpoint` |
 | 退出码 3 | 片子太长内存不够 | 用建议的 `--max-frames`，或切片 |
 | Mac 上极慢 | torch < 2.9，或强开了 fp16 | `pip install -U torch`；MPS 上别开 fp16 |
-| 给了 `--fps 24` 输出还是 30 | 原片 fps 低于 24 | depthcat 不向上插帧 |
+| 给了 `--fps 24` 输出还是 30 | 原片 fps 低于 24 | reshot 不向上插帧 |
 | 输出比原片小 | `--target` 裁剪或 `--max-res` | 正常，见目标预设 |
 | 白模有色带 | 调高了 `--crf` | 保持 ≤14 |
 | 人和背景糊在一起 | 场景纵深本身很小 | 试 `--clip 0.5 --gamma 1.3` |

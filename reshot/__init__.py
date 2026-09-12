@@ -1,10 +1,10 @@
-"""depthcat — turn any video into a depth "blockout" video for video-generation control.
+"""ReShot — turn any video into a depth "blockout" video for video-generation control.
 
 from pathlib import Path
-from depthcat import RunConfig, run
+from reshot import RunConfig, run
 run(RunConfig(input=Path("in.mp4"), output=Path("out.mp4"), target="h3"))
 
-from depthcat import extract, to_gray, write_gray_video
+from reshot import extract, to_gray, write_gray_video
 depths, fps = extract("in.mp4")            # float32 [T, H, W], larger = closer
 write_gray_video(to_gray(depths), "out.mp4", fps)
 """
@@ -21,7 +21,7 @@ os.environ.setdefault("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "0.6")
 
 from ._version import __version__
 from .config import RunConfig
-from .errors import BackendError, DepthcatError, InputError, RamBudgetError, ToolMissingError
+from .errors import BackendError, ReshotError, InputError, RamBudgetError, ToolMissingError
 from .io import probe_video, read_video, write_gray_video
 from .pipeline import Plan, RunResult, extract, plan, run
 from .planning import memory_verdict, processing_max_res
@@ -31,7 +31,7 @@ from .targets import TARGETS, Target, center_crop, fit_dimensions
 __all__ = [
     "TARGETS",
     "BackendError",
-    "DepthcatError",
+    "ReshotError",
     "InputError",
     "Plan",
     "RamBudgetError",

@@ -1,6 +1,6 @@
 ---
 name: Feature
-about: Something depthcat should do
+about: Something reshot should do
 ---
 
 **What** (one sentence)

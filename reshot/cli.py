@@ -1,8 +1,8 @@
-"""`depthcat` command line: argv → RunConfig → pipeline.run().
+"""`reshot` command line: argv → RunConfig → pipeline.run().
 
-    depthcat in.mp4 -o out.mp4                 # Apache-2.0 Small model, auto device
-    depthcat in.mp4 -o out.mp4 --target h3     # 24 fps, ×32 dims, ≤15 s for MiniMax H3
-    depthcat in.mp4 -o out.mp4 --npz d.npz --metrics run.json
+    reshot in.mp4 -o out.mp4                 # Apache-2.0 Small model, auto device
+    reshot in.mp4 -o out.mp4 --target h3     # 24 fps, ×32 dims, ≤15 s for MiniMax H3
+    reshot in.mp4 -o out.mp4 --npz d.npz --metrics run.json
 
 Exit codes: 0 ok · 1 unexpected · 2 bad input/arguments · 3 over RAM budget ·
 4 ffmpeg missing · 5 backend/weights problem.
@@ -17,7 +17,7 @@ from pathlib import Path
 
 from ._version import __version__
 from .config import BACKENDS, MODEL_VARIANTS, RunConfig
-from .errors import DepthcatError
+from .errors import ReshotError
 from .pipeline import run
 from .reporter import StderrReporter
 from .targets import TARGETS
@@ -25,9 +25,9 @@ from .targets import TARGETS
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="depthcat",
+        prog="reshot",
         description="Video → depth blockout video for video-generation ControlNets.",
-        epilog="Docs: https://github.com/maosika-ai/depthcat",
+        epilog="Docs: https://github.com/maosika-ai/reshot",
     )
     p.add_argument("input", type=Path, help="input video (anything ffmpeg/OpenCV can read)")
     p.add_argument("-o", "--output", type=Path, required=True, help="output .mp4")
@@ -65,7 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     g = p.add_argument_group("safety")
     g.add_argument("--force", action="store_true", help="run even if the RAM estimate exceeds the budget")
     p.add_argument("-v", "--verbose", action="store_true")
-    p.add_argument("--version", action="version", version=f"depthcat {__version__}")
+    p.add_argument("--version", action="version", version=f"reshot {__version__}")
     return p
 
 
@@ -99,11 +99,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     try:
         run(config_from_args(args), StderrReporter())
-    except DepthcatError as exc:
-        print(f"depthcat: {exc}", file=sys.stderr)
+    except ReshotError as exc:
+        print(f"reshot: {exc}", file=sys.stderr)
         return exc.exit_code
     except KeyboardInterrupt:
-        print("depthcat: interrupted", file=sys.stderr)
+        print("reshot: interrupted", file=sys.stderr)
         return 130
     return 0
 

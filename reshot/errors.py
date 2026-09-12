@@ -1,23 +1,23 @@
 """User-facing errors. The CLI prints `str(exc)` and maps each to an exit code; library
-users can catch `DepthcatError` for anything the tool considers a *user* problem
+users can catch `ReshotError` for anything the tool considers a *user* problem
 (bad input, over budget, missing tool) as opposed to a bug."""
 
 from __future__ import annotations
 
 
-class DepthcatError(Exception):
+class ReshotError(Exception):
     """Base class; `exit_code` is what the CLI returns."""
 
     exit_code = 1
 
 
-class InputError(DepthcatError):
+class InputError(ReshotError):
     """The input video could not be opened or decoded."""
 
     exit_code = 2
 
 
-class RamBudgetError(DepthcatError):
+class RamBudgetError(ReshotError):
     """The planned run would exceed the host-RAM budget (see planning.py)."""
 
     exit_code = 3
@@ -33,13 +33,13 @@ class RamBudgetError(DepthcatError):
         )
 
 
-class ToolMissingError(DepthcatError):
+class ToolMissingError(ReshotError):
     """A required external tool (ffmpeg) is missing."""
 
     exit_code = 4
 
 
-class BackendError(DepthcatError):
+class BackendError(ReshotError):
     """Unknown backend / model variant, or weights could not be loaded."""
 
     exit_code = 5

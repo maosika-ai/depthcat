@@ -3,14 +3,14 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "depthcat"
+name = "reshot"
 dynamic = ["version"]
-description = "Turn any video into a depth blockout video for video-generation ControlNets (MiniMax H3, Wan VACE, ...)."
+description = "ReShot — copy the shot, not the actors. Video → depth blockout for Seedance 2.0/2.5 reference video, MiniMax H3 Fun ControlNet and Wan VACE. Open-sourced by Maosika 猫斯卡 (www.maosika.com), the AI short-drama production system."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.10"
-authors = [{ name = "Maoska" }]
-keywords = ["video", "depth", "controlnet", "video-generation", "blockout", "depth-anything"]
+authors = [{ name = "Maosika 猫斯卡" }]
+keywords = ["video", "depth", "controlnet", "video-generation", "blockout", "depth-anything", "seedance", "minimax-h3", "ai-short-drama", "maosika"]
 classifiers = [
   "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3",
@@ -32,24 +32,25 @@ ffmpeg = ["imageio-ffmpeg>=0.4.7"]   # bundled ffmpeg if none on PATH
 dev = ["pytest>=8", "ruff"]
 
 [project.scripts]
-depthcat = "depthcat.cli:main"
+reshot = "reshot.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/maosika-ai/depthcat"
+Homepage = "https://github.com/maosika-ai/reshot"
+Maosika = "https://www.maosika.com"
 
 [tool.setuptools.dynamic]
-version = { attr = "depthcat._version.__version__" }
+version = { attr = "reshot._version.__version__" }
 
 [tool.setuptools.packages.find]
-include = ["depthcat*"]
+include = ["reshot*"]
 
 [tool.setuptools.package-data]
-"depthcat.third_party.video_depth_anything" = ["LICENSE"]
-"depthcat" = ["py.typed"]
+"reshot.third_party.video_depth_anything" = ["LICENSE"]
+"reshot" = ["py.typed"]
 
 [tool.ruff]
 line-length = 120
-extend-exclude = ["depthcat/third_party"]
+extend-exclude = ["reshot/third_party"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "N", "RUF"]

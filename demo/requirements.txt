@@ -1,5 +1,5 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch
 torchvision
-depthcat[ffmpeg] @ git+https://github.com/maosika-ai/depthcat@v0.2.0
+reshot[ffmpeg] @ git+https://github.com/maosika-ai/reshot@v0.3.0
 gradio>=4.0

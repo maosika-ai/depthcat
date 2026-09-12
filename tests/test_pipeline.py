@@ -8,8 +8,8 @@ import cv2
 import numpy as np
 import pytest
 
-from depthcat import RunConfig, RunResult, plan, run
-from depthcat.errors import InputError, RamBudgetError
+from reshot import RunConfig, RunResult, plan, run
+from reshot.errors import InputError, RamBudgetError
 
 
 def _clip(path: Path, frames=12, w=200, h=120, fps=30):
@@ -51,7 +51,7 @@ def test_plan_is_cheap_and_consistent(tmp_path):
 
 
 def test_ram_budget_refuses_then_force_allows(tmp_path, monkeypatch):
-    import depthcat.pipeline as pl
+    import reshot.pipeline as pl
 
     src = _clip(tmp_path / "src.mp4")
     monkeypatch.setattr(pl, "memory_verdict", lambda *_: {"estimate": 10, "budget": 1, "ok": False, "max_frames_ok": 1})
@@ -74,7 +74,7 @@ def test_missing_input_is_a_user_error(tmp_path):
 
 
 def test_cli_exit_codes(tmp_path):
-    from depthcat.cli import main
+    from reshot.cli import main
 
     src = _clip(tmp_path / "src.mp4")
     assert main([str(src), "-o", str(tmp_path / "o.mp4"), "--backend", "fake"]) == 0

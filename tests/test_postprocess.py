@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from depthcat.postprocess import to_gray
-from depthcat.targets import TARGETS, center_crop, fit_dimensions
+from reshot.postprocess import to_gray
+from reshot.targets import TARGETS, center_crop, fit_dimensions
 
 
 def test_global_normalisation_not_per_frame():

@@ -1,7 +1,7 @@
 """The pipeline: plan → read → depth → grey → encode. This is the only module that wires
 the steps together; the CLI and the Python API both call `run()`.
 
-    from depthcat import RunConfig, run
+    from reshot import RunConfig, run
     result = run(RunConfig(input=Path("in.mp4"), output=Path("out.mp4"), target="h3"))
 
 Design notes
@@ -11,7 +11,7 @@ Design notes
   12 s 720p clip needs ~4 GB of host RAM instead of 8–20 GB (see planning.py).
 * Normalisation is computed once over the whole clip; per-frame normalisation makes
   static geometry flicker, which the downstream generator reads as motion.
-* Failure modes that are the *user's* to fix raise `DepthcatError` subclasses with a
+* Failure modes that are the *user's* to fix raise `ReshotError` subclasses with a
   concrete suggestion; everything else propagates as a bug.
 """
 
@@ -148,7 +148,7 @@ def run(cfg: RunConfig, reporter: Reporter | None = None) -> RunResult:
         rep.step("warn", f"clip is {t / fps:.1f}s; {target.key} accepts ≤ {target.max_seconds:.0f}s — trim it")
 
     # ── depth ─────────────────────────────────────────────────────────────────
-    backend_name = "fake" if os.environ.get("DEPTHCAT_FAKE_BACKEND") else cfg.backend
+    backend_name = "fake" if os.environ.get("RESHOT_FAKE_BACKEND") else cfg.backend
     device = pick_device(cfg.device)
     backend = (
         get_backend("fake")
