@@ -90,7 +90,7 @@ reshot 输入 -o 输出 [选项]
 
 ```python
 from pathlib import Path
-from reshot import RunConfig, run, plan
+from reshot import RunConfig, run, run_many, plan
 
 cfg = RunConfig(input=Path("in.mp4"), output=Path("out.mp4"), target="h3", metrics=Path("m.json"))
 print(plan(cfg))          # 尺寸、帧数、内存估算——此时还没解码
@@ -152,19 +152,23 @@ write_gray_video(upsample_frames(gray, 1280, 736), "out.mp4", fps, size=(1280, 7
 
 ### 批量
 
+一次给 `reshot` 多个输入和一个目录，模型只加载一次，每条片输出为 `<原名>_depth.mp4`。
+`--metrics` / `--npz` 此时也当目录用（`<原名>.json` / `<原名>.npz`）。某条片失败会报出来并跳过，
+退出码取第一个失败的。
+
 ```bash
-for f in clips/*.mp4; do reshot "$f" -o "out/$(basename "$f" .mp4)_depth.mp4" --target h3 --metrics "out/$(basename "$f" .mp4).json"; done
+reshot clips/*.mp4 -o depth/ --target seedance --metrics depth/metrics/
 ```
 
-每个进程载一次模型；几百条片子的话写个 Python 循环复用后端对象：
+Python 里对应 `run_many()`：
 
 ```python
-from reshot.backends import get_backend
-from reshot import read_video, to_gray, write_gray_video
-b = get_backend("vda", model="small")
-for src in sources:
-    frames, fps = read_video(src, max_res=900)
-    write_gray_video(to_gray(b.infer(frames, fps)), src.with_suffix(".depth.mp4"), fps)
+from pathlib import Path
+from reshot import RunConfig, run_many
+
+cfgs = [RunConfig(input=p, output=Path("depth") / f"{p.stem}_depth.mp4", target="seedance") for p in Path("clips").glob("*.mp4")]
+for r in run_many(cfgs):        # 成功是 RunResult，失败是那条片的 ReshotError
+    print(r)
 ```
 
 ### 长视频

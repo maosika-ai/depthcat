@@ -79,3 +79,24 @@ def test_probe_video(tmp_path):
 
     w, h, fps, n = probe_video(p)
     assert (w, h, n) == (64, 48, 5) and abs(fps - 25) < 0.01
+
+
+def test_read_video_grows_when_header_frame_count_is_wrong(tmp_path, monkeypatch):
+    """The decode buffer is sized from the container's frame count; a wrong header must
+    not truncate the clip."""
+    import reshot.io as io
+
+    src = tmp_path / "src.mp4"
+    vw = cv2.VideoWriter(str(src), cv2.VideoWriter_fourcc(*"mp4v"), 30, (64, 48))
+    for i in range(40):
+        vw.write(np.full((48, 64, 3), i * 6 % 256, np.uint8))
+    vw.release()
+    real_get = cv2.VideoCapture.get
+
+    def lying_get(self, prop):
+        return 3 if prop == cv2.CAP_PROP_FRAME_COUNT else real_get(self, prop)
+
+    monkeypatch.setattr(cv2.VideoCapture, "get", lying_get)
+    frames, _ = io.read_video(src)
+    assert frames.shape[0] == 40
+    assert abs(int(frames[39, 0, 0, 0]) - 39 * 6 % 256) < 12  # lossy codec; frames arrived in order

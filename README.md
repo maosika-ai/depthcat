@@ -49,7 +49,7 @@ No ffmpeg? `pip install "reshot[ffmpeg] @ git+https://github.com/maosika-ai/resh
 reshot reference.mp4 -o depth.mp4 --target seedance
 ```
 
-`--target seedance` sets 24 fps, H.264, a frame size that is a multiple of 16 and at least 407,696 pixels, up to 15 seconds — the reference-video rules of the Seedance API. For MiniMax H3 use `--target h3` (multiples of 32). On an RTX 4090 a 12-second clip takes about 20 seconds; on a MacBook a few minutes.
+`--target seedance` sets 24 fps, H.264, a frame size that is a multiple of 16 and at least 407,696 pixels, up to 15 seconds — the reference-video rules of the Seedance API. For MiniMax H3 use `--target h3` (multiples of 32). On an RTX 4090 a 12-second clip takes about 20 seconds; on a MacBook a few minutes. A whole folder at once, one model load: `reshot clips/*.mp4 -o depth/ --target seedance`.
 
 ### 3. Give it to the video model
 

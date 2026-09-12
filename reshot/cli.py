@@ -1,8 +1,13 @@
-"""`reshot` command line: argv → RunConfig → pipeline.run().
+"""`reshot` command line: argv → RunConfig(s) → pipeline.run() / run_many().
 
     reshot in.mp4 -o out.mp4                 # Apache-2.0 Small model, auto device
     reshot in.mp4 -o out.mp4 --target h3     # 24 fps, ×32 dims, ≤15 s for MiniMax H3
     reshot in.mp4 -o out.mp4 --npz d.npz --metrics run.json
+    reshot clips/*.mp4 -o depth/ --target seedance   # batch: one model load, out/<name>_depth.mp4
+
+Batch mode (several inputs, or `-o` naming a directory): `--npz` / `--metrics`, if given,
+are directories too and get `<name>.npz` / `<name>.json` per clip. One bad clip is
+reported and skipped; the exit code is that of the first failure.
 
 Exit codes: 0 ok · 1 unexpected · 2 bad input/arguments · 3 over RAM budget ·
 4 ffmpeg missing · 5 backend/weights problem.
@@ -18,7 +23,7 @@ from pathlib import Path
 from ._version import __version__
 from .config import BACKENDS, MODEL_VARIANTS, RunConfig
 from .errors import ReshotError
-from .pipeline import run
+from .pipeline import run, run_many
 from .reporter import StderrReporter
 from .targets import TARGETS
 
@@ -29,8 +34,10 @@ def build_parser() -> argparse.ArgumentParser:
         description="Video → depth-map video for video-generation ControlNets.",
         epilog="Docs: https://github.com/maosika-ai/reshot",
     )
-    p.add_argument("input", type=Path, help="input video (anything ffmpeg/OpenCV can read)")
-    p.add_argument("-o", "--output", type=Path, required=True, help="output .mp4")
+    p.add_argument("input", type=Path, nargs="+", help="input video(s) (anything ffmpeg/OpenCV can read)")
+    p.add_argument(
+        "-o", "--output", type=Path, required=True, help="output .mp4, or a directory when there are several inputs"
+    )
     g = p.add_argument_group("model")
     g.add_argument(
         "--model",
@@ -69,27 +76,52 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _is_batch(args: argparse.Namespace) -> bool:
+    """Several inputs, or an output that is (or is spelled like) a directory."""
+    o = args.output
+    return len(args.input) > 1 or o.is_dir() or str(o).endswith(("/", "\\"))
+
+
+def configs_from_args(args: argparse.Namespace) -> list[RunConfig]:
+    """One RunConfig per input. In batch mode the outputs are derived from the input names."""
+    batch = _is_batch(args)
+
+    def per_clip(option: Path | None, stem: str, ext: str) -> Path | None:
+        if option is None:
+            return None
+        return option / f"{stem}{ext}" if batch else option
+
+    cfgs = []
+    for src in args.input:
+        stem = src.stem
+        cfgs.append(
+            RunConfig(
+                input=src,
+                output=args.output / f"{stem}_depth.mp4" if batch else args.output,
+                model=args.model,
+                backend=args.backend,
+                device=args.device,
+                target=args.target,
+                fps=args.fps,
+                max_res=args.max_res,
+                max_frames=args.max_frames,
+                input_size=args.input_size,
+                invert=args.invert,
+                clip_percent=args.clip,
+                gamma=args.gamma,
+                crf=args.crf,
+                npz=per_clip(args.npz, stem, ".npz"),
+                metrics=per_clip(args.metrics, stem, ".json"),
+                checkpoint=args.checkpoint,
+                force=args.force,
+            )
+        )
+    return cfgs
+
+
 def config_from_args(args: argparse.Namespace) -> RunConfig:
-    return RunConfig(
-        input=args.input,
-        output=args.output,
-        model=args.model,
-        backend=args.backend,
-        device=args.device,
-        target=args.target,
-        fps=args.fps,
-        max_res=args.max_res,
-        max_frames=args.max_frames,
-        input_size=args.input_size,
-        invert=args.invert,
-        clip_percent=args.clip,
-        gamma=args.gamma,
-        crf=args.crf,
-        npz=args.npz,
-        metrics=args.metrics,
-        checkpoint=args.checkpoint,
-        force=args.force,
-    )
+    """Single-clip form, kept for callers that build a Namespace themselves."""
+    return configs_from_args(args)[0]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -98,14 +130,22 @@ def main(argv: list[str] | None = None) -> int:
         level=logging.INFO if args.verbose else logging.WARNING, format="%(levelname)s %(name)s: %(message)s"
     )
     try:
-        run(config_from_args(args), StderrReporter())
+        cfgs = configs_from_args(args)
+        if len(cfgs) == 1 and not _is_batch(args):
+            run(cfgs[0], StderrReporter())
+            return 0
+        results = run_many(cfgs, StderrReporter())
+        failures = [r for r in results if isinstance(r, ReshotError)]
+        if failures:
+            print(f"reshot: {len(failures)} of {len(results)} clips failed", file=sys.stderr)
+            return failures[0].exit_code
+        return 0
     except ReshotError as exc:
         print(f"reshot: {exc}", file=sys.stderr)
         return exc.exit_code
     except KeyboardInterrupt:
         print("reshot: interrupted", file=sys.stderr)
         return 130
-    return 0
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -54,7 +54,18 @@ def read_video(
     src_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     out_fps = src_fps if target_fps <= 0 or target_fps >= src_fps else float(target_fps)
 
-    frames: list[np.ndarray] = []
+    # Decode straight into one preallocated array. Collecting frames in a list and
+    # np.stack-ing them at the end held two copies of the clip for a moment (≈400 MB
+    # extra for 12 s at model resolution). The header's frame count can be off for some
+    # containers, so the buffer grows if the file turns out longer than announced.
+    header_n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    expect = header_n if header_n > 0 else 1024
+    if out_fps < src_fps:
+        expect = int(expect * out_fps / src_fps) + 2
+    if max_frames > 0:
+        expect = min(expect, max_frames)
+    buf: np.ndarray | None = None
+    n = 0
     src_index = 0
     next_pick_time = 0.0
     while True:
@@ -72,13 +83,18 @@ def read_video(
             new_w = int(round(bgr.shape[1] * scale / 2) * 2)
             new_h = int(round(bgr.shape[0] * scale / 2) * 2)
             bgr = cv2.resize(bgr, (new_w, new_h), interpolation=cv2.INTER_AREA)
-        frames.append(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
-        if 0 < max_frames <= len(frames):
+        if buf is None:
+            buf = np.empty((max(expect, 1), *bgr.shape), dtype=np.uint8)
+        elif n == buf.shape[0]:
+            buf = np.concatenate([buf, np.empty_like(buf[: max(16, n // 4)])])
+        cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB, dst=buf[n])
+        n += 1
+        if 0 < max_frames <= n:
             break
     cap.release()
-    if not frames:
+    if buf is None or n == 0:
         raise ValueError(f"no frames decoded from {path}")
-    return np.stack(frames), out_fps
+    return buf[:n], out_fps
 
 
 def ffmpeg_binary() -> str:

@@ -103,7 +103,7 @@ class VDABackend:
             ) from exc
         log.info("loading %s from %s on %s (fp32=%s)", variant, path, self.device, self.fp32)
         model = VideoDepthAnything(**_VARIANTS[variant])
-        model.load_state_dict(torch.load(path, map_location="cpu"), strict=True)
+        model.load_state_dict(torch.load(path, map_location="cpu", weights_only=True), strict=True)
         self.model = model.to(self.device).eval()
 
     def infer(self, frames: np.ndarray, fps: float, *, input_size: int = 518) -> np.ndarray:
@@ -112,7 +112,10 @@ class VDABackend:
         # Upstream's infer_video_depth already does 32-frame windows with 10-frame overlap,
         # keyframe-based scale/shift alignment across windows and interpolation over the
         # seam. That is the temporal-consistency machinery — do not re-chunk outside it.
-        depths, _ = self.model.infer_video_depth(frames, fps, input_size=input_size, device=self.device, fp32=self.fp32)
+        with torch.inference_mode():  # upstream uses no_grad; inference_mode also skips version counters
+            depths, _ = self.model.infer_video_depth(
+                frames, fps, input_size=input_size, device=self.device, fp32=self.fp32
+            )
         return np.asarray(depths, dtype=np.float32)
 
 

@@ -29,7 +29,7 @@ import numpy as np
 from ._version import __version__
 from .backends import get_backend, pick_device
 from .config import RunConfig
-from .errors import InputError, RamBudgetError
+from .errors import InputError, RamBudgetError, ReshotError
 from .io import probe_video, read_video, write_gray_video
 from .planning import gib, memory_verdict, processing_max_res
 from .postprocess import to_gray, upsample_frames
@@ -93,8 +93,13 @@ def plan(cfg: RunConfig) -> Plan:
         frames = round(frames * out_fps / src_fps)
     frames = max(frames, 1)
 
+    # Inference always runs at the model's working resolution. `max_res` caps the OUTPUT
+    # only — until 0.3.2 it also capped the processing size, so `--max-res 320` fed the
+    # model a 320-px thumbnail that it then upsampled internally: a depth map guessed
+    # from a thumbnail. The three demo takes were made from full-resolution depth
+    # downscaled afterwards, which is what this now does.
     cap = cfg.max_res if cfg.max_res > 0 else 10**9
-    proc_max_res = min(processing_max_res(src_w, src_h, cfg.input_size), cap)
+    proc_max_res = processing_max_res(src_w, src_h, cfg.input_size)
     scale = min(1.0, proc_max_res / max(src_w, src_h))
     proc_w, proc_h = (int(round(src_w * scale / 2) * 2), int(round(src_h * scale / 2) * 2))
 
@@ -119,9 +124,60 @@ def plan(cfg: RunConfig) -> Plan:
     )
 
 
+def _make_backend(cfg: RunConfig):
+    """Build the depth backend a config asks for (the fake one when the env var is set)."""
+    backend_name = "fake" if os.environ.get("RESHOT_FAKE_BACKEND") else cfg.backend
+    if backend_name == "fake":
+        return get_backend("fake"), backend_name
+    device = pick_device(cfg.device)
+    backend = get_backend(
+        "vda", model=cfg.model, device=device, checkpoint=str(cfg.checkpoint) if cfg.checkpoint else None
+    )
+    return backend, backend_name
+
+
+def run_many(cfgs: list[RunConfig], reporter: Reporter | None = None) -> list[RunResult | ReshotError]:
+    """Run several configs with ONE model load.
+
+    A shell loop over `reshot` pays torch import + CUDA context + weight load (3–6 s) per
+    clip; here that happens once. Every config must ask for the same model / device /
+    checkpoint. A clip that fails with a user-fixable `ReshotError` does not stop the
+    batch — its error is returned in place of a result so the caller can report it.
+    """
+    if not cfgs:
+        return []
+    rep = reporter or NullReporter()
+    key = {(c.model, c.backend, c.device, c.checkpoint) for c in cfgs}
+    if len(key) != 1:
+        raise InputError("batch: every input must use the same --model / --backend / --device / --checkpoint")
+    backend, backend_name = _make_backend(cfgs[0])
+    results: list[RunResult | ReshotError] = []
+    try:
+        for i, cfg in enumerate(cfgs, 1):
+            rep.step("file", f"[{i}/{len(cfgs)}] {cfg.input} → {cfg.output}")
+            try:
+                results.append(_run_one(cfg, rep, backend, backend_name))
+            except ReshotError as exc:
+                rep.step("error", f"{cfg.input}: {exc}")
+                results.append(exc)
+    finally:
+        _release_accelerator(backend.device)
+        del backend
+    return results
+
+
 def run(cfg: RunConfig, reporter: Reporter | None = None) -> RunResult:
     """Execute a full run. See module docstring."""
-    rep = reporter or NullReporter()
+    backend, backend_name = _make_backend(cfg)
+    try:
+        return _run_one(cfg, reporter or NullReporter(), backend, backend_name)
+    finally:
+        _release_accelerator(backend.device)
+        del backend
+
+
+def _run_one(cfg: RunConfig, rep: Reporter, backend, backend_name: str) -> RunResult:
+    """One clip through plan → read → depth → grey → encode on an already-built backend."""
     t0 = time.time()
     target = TARGETS[cfg.target]
 
@@ -147,15 +203,7 @@ def run(cfg: RunConfig, reporter: Reporter | None = None) -> RunResult:
         rep.step("warn", f"clip is {t / fps:.1f}s; {target.key} accepts ≤ {target.max_seconds:.0f}s — trim it")
 
     # ── depth ─────────────────────────────────────────────────────────────────
-    backend_name = "fake" if os.environ.get("RESHOT_FAKE_BACKEND") else cfg.backend
-    device = pick_device(cfg.device)
-    backend = (
-        get_backend("fake")
-        if backend_name == "fake"
-        else get_backend(
-            "vda", model=cfg.model, device=device, checkpoint=str(cfg.checkpoint) if cfg.checkpoint else None
-        )
-    )
+    device = backend.device
     precision = "fp32" if backend.fp32 else "fp16"
     rep.step(
         "model",
@@ -165,11 +213,11 @@ def run(cfg: RunConfig, reporter: Reporter | None = None) -> RunResult:
     depths = backend.infer(frames, fps, input_size=cfg.input_size)
     depth_seconds = time.time() - t1
     del frames
-    _release_accelerator(backend.device)
-    del backend
+    _release_accelerator(backend.device)  # the model stays; only cached activations go
     rep.step("depth", f"{depth_seconds:.1f}s = {depth_seconds / t * 1000:.0f} ms/frame")
 
     if cfg.npz:
+        Path(cfg.npz).parent.mkdir(parents=True, exist_ok=True)
         np.savez_compressed(cfg.npz, depths=depths, fps=fps)
         rep.step("npz", str(cfg.npz))
 
@@ -208,6 +256,7 @@ def run(cfg: RunConfig, reporter: Reporter | None = None) -> RunResult:
         "output_bytes": os.path.getsize(out),
     }
     if cfg.metrics:
+        Path(cfg.metrics).parent.mkdir(parents=True, exist_ok=True)
         with open(cfg.metrics, "w", encoding="utf-8") as fh:
             json.dump(metrics, fh, ensure_ascii=False, indent=2)
         rep.step("metrics", str(cfg.metrics))
@@ -232,11 +281,16 @@ def extract(
 ) -> tuple[np.ndarray, float]:
     """Convenience: decode → depth, no encoding. Returns `(depths[T,H,W] float32, fps)`.
 
-    Same resolution policy as `run()`: frames are read at model resolution."""
+    Frames are read at model resolution, like `run()`. Unlike `run()`, `max_res` here caps
+    the *processing* size (there is no separate output to cap) — pass a smaller value
+    only when you deliberately want cheaper, coarser depth."""
     w, h, _, _ = probe_video(video)
     proc = min(processing_max_res(w, h, input_size), max_res if max_res > 0 else 10**9)
     frames, fps = read_video(video, max_frames=max_frames, target_fps=target_fps, max_res=proc)
-    backend = get_backend("vda", model=model, device=device, checkpoint=checkpoint)
+    if os.environ.get("RESHOT_FAKE_BACKEND"):  # same escape hatch as run(), for tests
+        backend = get_backend("fake")
+    else:
+        backend = get_backend("vda", model=model, device=device, checkpoint=checkpoint)
     return backend.infer(frames, fps, input_size=input_size), fps
 
 

@@ -40,12 +40,20 @@ def to_gray(
         lo, hi = float(d.min()), float(d.max())
     if hi - lo < 1e-6:
         return np.zeros(d.shape, dtype=np.uint8)
-    n = np.clip((d - lo) / (hi - lo), 0.0, 1.0)
-    if gamma != 1.0:
-        n = n ** float(gamma)
-    if invert:
-        n = 1.0 - n
-    return (n * 255.0 + 0.5).astype(np.uint8)
+    # One scale for the clip (lo/hi above), but convert frame by frame: doing the
+    # arithmetic on the whole [T, H, W] array allocated four float32 temporaries of the
+    # clip's size — 1.2 GB extra for a 12 s clip, 3 GB for 30 s — which is what decided
+    # whether a 16 GB laptop could run a long clip at all. Same operations in the same
+    # order, so the bytes are identical to the whole-array version.
+    out = np.empty(d.shape, dtype=np.uint8)
+    for i in range(d.shape[0]):
+        n = np.clip((d[i] - lo) / (hi - lo), 0.0, 1.0)
+        if gamma != 1.0:
+            n = n ** float(gamma)
+        if invert:
+            n = 1.0 - n
+        out[i] = (n * 255.0 + 0.5).astype(np.uint8)
+    return out
 
 
 def upsample_frames(gray: np.ndarray, height: int, width: int):

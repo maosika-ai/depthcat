@@ -65,3 +65,22 @@ def test_h3_preset_matches_published_constraints():
 def test_seedance_preset():
     t = TARGETS["seedance"]
     assert (t.fps, t.multiple, t.max_seconds, t.min_pixels) == (24.0, 16, 15.0, 407_696)
+
+
+def test_to_gray_matches_whole_array_reference_bit_for_bit():
+    """to_gray converts frame by frame to save memory; the bytes must equal the
+    straightforward whole-array formula for every option combination."""
+    rng = np.random.default_rng(0)
+    d = rng.random((6, 40, 64), dtype=np.float32) * 10
+
+    def ref(x, invert=False, gamma=1.0):
+        lo, hi = float(x.min()), float(x.max())
+        n = np.clip((x - lo) / (hi - lo), 0.0, 1.0)
+        if gamma != 1.0:
+            n = n ** float(gamma)
+        if invert:
+            n = 1.0 - n
+        return (n * 255.0 + 0.5).astype(np.uint8)
+
+    for kw in ({}, {"gamma": 1.6}, {"invert": True}, {"gamma": 0.8, "invert": True}):
+        assert np.array_equal(to_gray(d, **kw), ref(d, **kw)), kw

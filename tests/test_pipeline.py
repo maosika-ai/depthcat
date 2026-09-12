@@ -79,3 +79,48 @@ def test_cli_exit_codes(tmp_path):
     src = _clip(tmp_path / "src.mp4")
     assert main([str(src), "-o", str(tmp_path / "o.mp4"), "--backend", "fake"]) == 0
     assert main([str(tmp_path / "nope.mp4"), "-o", str(tmp_path / "o.mp4"), "--backend", "fake"]) == 2
+
+
+def test_max_res_caps_output_not_inference(tmp_path):
+    """`--max-res` must not shrink what the model sees (0.3.2 regression lock: a 320-px cap
+    used to feed the model a thumbnail that it upsampled internally)."""
+    src = _clip(tmp_path / "src.mp4", frames=4, w=1280, h=736)
+    p = plan(RunConfig(input=src, output=tmp_path / "o.mp4", backend="fake", target="h3", max_res=320))
+    assert p.proc_h == 518 and p.proc_w == 900  # model resolution
+    assert (p.out_w, p.out_h) == (320, 160)  # output capped, multiple of 32
+
+
+def test_cli_batch_loads_model_once_and_skips_bad_clip(tmp_path, monkeypatch):
+    """`reshot a.mp4 b.mp4 missing.mp4 -o dir/`: one backend for the whole batch, per-clip
+    outputs named after the inputs, a bad clip reported and skipped, exit code of the failure."""
+    import reshot.pipeline as pl
+    from reshot.cli import main
+
+    a, b = _clip(tmp_path / "a.mp4"), _clip(tmp_path / "b.mp4", frames=8)
+    calls = []
+    real = pl.get_backend
+
+    def counting(name, **kw):
+        calls.append(name)
+        return real(name, **kw)
+
+    monkeypatch.setattr(pl, "get_backend", counting)
+    out = tmp_path / "depth"
+    code = main(
+        [
+            str(a),
+            str(b),
+            str(tmp_path / "missing.mp4"),
+            "-o",
+            str(out),
+            "--backend",
+            "fake",
+            "--metrics",
+            str(tmp_path / "m"),
+        ]
+    )
+    assert code == 2  # InputError for the missing clip
+    assert calls == ["fake"]  # one model for three clips
+    assert (out / "a_depth.mp4").exists() and (out / "b_depth.mp4").exists()
+    assert (tmp_path / "m" / "a.json").exists() and (tmp_path / "m" / "b.json").exists()
+    assert not (out / "missing_depth.mp4").exists()

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.2 — 2026-09-12
+- **Fix: `--max-res` no longer lowers the inference resolution.** It capped the processing
+  size too, so `--max-res 320` fed the model a thumbnail; inference now always runs at model
+  resolution and `--max-res` only sizes the output (regression test added).
+- **Batch mode**: `reshot a.mp4 b.mp4 … -o dir/` (or any `-o` that is a directory) runs
+  every clip on one model load; `--metrics`/`--npz` become per-clip directories; a failed clip
+  is skipped and reported. Python: `run_many()`.
+- Memory: `to_gray` converts frame by frame (−1.2 GB peak for a 12 s clip, byte-identical
+  output); decoding writes into one preallocated buffer instead of list + `np.stack` (−400 MB).
+- `--npz` / `--metrics` create their parent directories. `torch.load(weights_only=True)`;
+  inference under `torch.inference_mode()`; `extract()` honours `RESHOT_FAKE_BACKEND`.
+
 ## 0.3.1 — 2026-09-12
 - Fix: the package failed to import on Windows since 0.2.0 (`import resource` is Unix-only); peak-memory metric now uses the Win32 counter there.
 - README rewritten as a manual: the problem → what it does → four steps with the real prompts and character sheets from the demo (`docs/prompts/`, `docs/refs/`) → what transfers and what doesn't → presets → developers.

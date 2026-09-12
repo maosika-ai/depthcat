@@ -91,7 +91,7 @@ Frame size is **cropped**, never padded: a padded black border reads to the gene
 
 ```python
 from pathlib import Path
-from reshot import RunConfig, run, plan
+from reshot import RunConfig, run, run_many, plan
 
 cfg = RunConfig(input=Path("in.mp4"), output=Path("out.mp4"), target="h3", metrics=Path("m.json"))
 print(plan(cfg))          # sizes, frame counts, RAM estimate — no decoding yet
@@ -158,20 +158,24 @@ verified end-to-end yet.
 
 ### Batch
 
+Give `reshot` several inputs and a directory; the model loads once for all of them and
+each clip comes out as `<name>_depth.mp4`. `--metrics` / `--npz` become directories too
+(`<name>.json` / `<name>.npz`). A clip that fails is reported and skipped; the exit code
+is that of the first failure.
+
 ```bash
-for f in clips/*.mp4; do reshot "$f" -o "out/$(basename "$f" .mp4)_depth.mp4" --target h3 --metrics "out/$(basename "$f" .mp4).json"; done
+reshot clips/*.mp4 -o depth/ --target seedance --metrics depth/metrics/
 ```
 
-The model loads once per process; for hundreds of clips write a short Python loop with
-`extract()` and reuse the backend object:
+From Python, `run_many()` is the same thing:
 
 ```python
-from reshot.backends import get_backend
-from reshot import read_video, to_gray, write_gray_video
-b = get_backend("vda", model="small")
-for src in sources:
-    frames, fps = read_video(src, max_res=900)
-    write_gray_video(to_gray(b.infer(frames, fps)), src.with_suffix(".depth.mp4"), fps)
+from pathlib import Path
+from reshot import RunConfig, run_many
+
+cfgs = [RunConfig(input=p, output=Path("depth") / f"{p.stem}_depth.mp4", target="seedance") for p in Path("clips").glob("*.mp4")]
+for r in run_many(cfgs):        # RunResult, or the ReshotError for a clip that failed
+    print(r)
 ```
 
 ### Long videos

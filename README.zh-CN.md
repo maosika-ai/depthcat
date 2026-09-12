@@ -49,7 +49,7 @@ pip install git+https://github.com/maosika-ai/reshot        # 需要 PATH 里有
 reshot 参考片.mp4 -o 深度图.mp4 --target seedance
 ```
 
-`--target seedance` 会把输出设成 24 fps、H.264、边长 16 的倍数、不少于 407,696 像素、最长 15 秒——这就是 Seedance 接口对参考视频的要求。给 MiniMax H3 用 `--target h3`（边长 32 的倍数）。RTX 4090 上 12 秒的片约 20 秒跑完，MacBook 要几分钟。
+`--target seedance` 会把输出设成 24 fps、H.264、边长 16 的倍数、不少于 407,696 像素、最长 15 秒——这就是 Seedance 接口对参考视频的要求。给 MiniMax H3 用 `--target h3`（边长 32 的倍数）。RTX 4090 上 12 秒的片约 20 秒跑完，MacBook 要几分钟。整个文件夹一起来、模型只加载一次：`reshot clips/*.mp4 -o depth/ --target seedance`。
 
 ### 3. 交给视频模型
 

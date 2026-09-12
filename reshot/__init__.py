@@ -23,7 +23,7 @@ from ._version import __version__
 from .config import RunConfig
 from .errors import BackendError, InputError, RamBudgetError, ReshotError, ToolMissingError
 from .io import probe_video, read_video, write_gray_video
-from .pipeline import Plan, RunResult, extract, plan, run
+from .pipeline import Plan, RunResult, extract, plan, run, run_many
 from .planning import memory_verdict, processing_max_res
 from .postprocess import to_gray, upsample_frames
 from .targets import TARGETS, Target, center_crop, fit_dimensions
@@ -49,6 +49,7 @@ __all__ = [
     "processing_max_res",
     "read_video",
     "run",
+    "run_many",
     "to_gray",
     "upsample_frames",
     "write_gray_video",
