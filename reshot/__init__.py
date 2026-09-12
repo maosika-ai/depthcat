@@ -16,8 +16,11 @@ import os
 # Apple Silicon: cap the MPS allocator at 60 % of the recommended working set. Unified
 # memory means GPU allocations count against the same RAM as everything else; without a
 # cap a long clip grows until the OS kills processes (seen 2026-09-11). Must be set
-# before torch is imported, which is why it lives here.
+# before torch is imported, which is why it lives here. The LOW watermark must be set
+# too: torch's default low (1.4) is above our high, and torch ≥ 2.14 refuses to start
+# with "invalid low watermark ratio" instead of ignoring it (found 2026-09-12).
 os.environ.setdefault("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "0.6")
+os.environ.setdefault("PYTORCH_MPS_LOW_WATERMARK_RATIO", "0.5")
 
 from ._version import __version__
 from .config import RunConfig

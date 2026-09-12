@@ -1,5 +1,5 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch
 torchvision
-reshot[ffmpeg]==0.3.7
+reshot[ffmpeg]==0.3.8
 gradio>=4.0

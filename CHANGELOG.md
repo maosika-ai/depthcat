@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.8 — 2026-09-12
+- Fix: on Apple Silicon with torch ≥ 2.14 the model failed to load with
+  `invalid low watermark ratio 1.4` — the MPS low watermark is now set alongside the high one.
+- `docs/AGENT_INSTALL.md`: a step-by-step install guide written for AI coding agents, and a
+  copy-paste prompt in the README that points them at it.
+
 ## 0.3.7 — 2026-09-12
 - **On PyPI**: `pip install reshot` (and `uvx reshot …`). No git needed any more.
 
