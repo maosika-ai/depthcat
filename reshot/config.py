@@ -11,7 +11,7 @@ from .errors import InputError
 from .targets import TARGETS
 
 MODEL_VARIANTS = ("small", "base", "large")
-QUALITIES = ("auto", "full", "fast")  # model working size: auto = by VRAM, full = 518, fast = 364
+QUALITIES = ("fast", "full")  # model working size: fast = 644×364 for 16:9 (default), full = 924×518
 BACKENDS = ("vda", "fake")
 
 
@@ -26,7 +26,7 @@ class RunConfig:
     fps: float | None = None  # None = preset or source
     max_res: int = 1280  # cap on the OUTPUT's longer side
     max_frames: int | None = None
-    quality: str = "auto"  # auto | full | fast — see QUALITIES; `input_size` overrides it
+    quality: str = "fast"  # fast | full — see QUALITIES; `input_size` overrides it
     input_size: int | None = None  # model short side (multiple of 14); expert override of `quality`
     invert: bool = False
     clip_percent: float = 0.0

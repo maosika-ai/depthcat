@@ -49,10 +49,10 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--device", default="auto", help="auto | cuda | mps | cpu")
     g.add_argument(
         "--quality",
-        default="auto",
+        default="fast",
         choices=QUALITIES,
-        help="full = model sees 518 px (needs ~11 GB VRAM), fast = 364 px (~3 GB, 2× faster, softer fine detail); "
-        "auto picks by GPU size (default)",
+        help="what the model sees: fast = 644x364 for 16:9 / 364x644 for 9:16, ~3 GB VRAM (default); "
+        "full = 924x518 / 518x924, ~11 GB VRAM, 2.5x slower, sharper fine detail",
     )
     g.add_argument(
         "--input-size",

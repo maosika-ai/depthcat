@@ -82,8 +82,9 @@ reshot reference.mp4 -o depth.mp4 --target seedance</code></pre>
 <h2>Measured <span class="zh">/ 实测</span></h2>
 <table>
 <tr><th>device</th><th>ms / frame</th><th>host RAM</th></tr>
-<tr><td>RTX 4090, fp16</td><td>62 (<code>--quality full</code>, 11 GB VRAM)</td><td>3.9 GB</td></tr>
-<tr><td>RTX 3080 Ti, fp16</td><td>83 full · 34 <code>--quality fast</code> (3 GB VRAM)</td><td>3.5 GB</td></tr>
+<tr><td>RTX 3080 Ti, <code>--quality fast</code> (default, model sees 644×364)</td><td>34 · 3 GB VRAM</td><td>2.3 GB</td></tr>
+<tr><td>RTX 3080 Ti, <code>--quality full</code> (model sees 924×518)</td><td>83 · 11 GB VRAM</td><td>3.5 GB</td></tr>
+<tr><td>RTX 4090, <code>--quality full</code></td><td>62 · 11 GB VRAM</td><td>3.9 GB</td></tr>
 <tr><td>Apple M2 Max, fp32</td><td>~500</td><td>~4 GB</td></tr>
 </table>
 

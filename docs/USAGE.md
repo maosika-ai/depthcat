@@ -41,7 +41,7 @@ reshot INPUT -o OUTPUT [options]
 |---|---|---|
 | `--model small\|base\|large` | `small` | Only `small` is Apache-2.0. `base`/`large` are CC-BY-NC-4.0: allowed for research, a warning is printed. |
 | `--device auto\|cuda\|mps\|cpu` | `auto` | fp16 on CUDA, fp32 elsewhere (fp16 on MPS is unusably slow). |
-| `--quality Q` | `auto` | `full` = model sees 518 px on the short side (~11 GB VRAM), `fast` = 364 px (~3 GB, 2× faster, fine detail softer: mean Δ 5.3/255, edges −4.5 %). `auto` = full on ≥ 11.5 GB cards, fast below. |
+| `--quality Q` | `fast` | Resolution the model works at. `fast` = 644×364 for 16:9 / 364×644 for 9:16 (~3 GB VRAM); `full` = 924×518 / 518×924 (~11 GB, 2.5× slower, sharper fine detail: mean Δ 5.3/255, edges −4.5 %). Output size is unaffected. |
 | `--input-size N` | — | Expert: exact model short side, multiple of 14; overrides `--quality`. |
 | `--checkpoint PATH` | – | Local `.pth`, skips the download. |
 
@@ -208,8 +208,9 @@ input video ─▶ probe ─▶ plan (sizes, frames, RAM) ─▶ decode at model
 - **Model**: [Video Depth Anything](https://github.com/DepthAnything/Video-Depth-Anything)
   (CVPR 2025). Its temporal module is what keeps the depth stable across frames; single-image
   models flicker. The model code is vendored unmodified (two import lines) under `third_party/`.
-- **Resolution**: the model works on a 518-px short side. Feeding larger frames only inflates the
-  float depth kept per frame; reshot decodes at that size and upscales the 8-bit result.
+- **Resolution**: the model works at `--quality` size — 644×364 (fast) or 924×518 (full) for a 16:9
+  clip. Feeding larger frames only inflates the float depth kept per frame; reshot decodes at that
+  size and upscales the 8-bit result to the source size.
 - **Normalisation**: `(d − min) / (max − min)` over *all* frames; optional percentile clip.
 - **Encoding**: `libx264 -crf 12 -pix_fmt yuv420p -g 2·fps -movflags +faststart`.
 

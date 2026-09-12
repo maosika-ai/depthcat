@@ -102,13 +102,20 @@ Things we learned making the demo:
 
 | | Runs? | Measured |
 |---|---|---|
-| **NVIDIA, 12 GB or more** (RTX 3080 Ti, 4070, 4090 …) | Yes, `--quality full` | 4090: 62 ms/frame, 11 GB VRAM peak · 3080 Ti: 83 ms/frame |
-| **NVIDIA, 8 GB** (RTX 3070, 4060 …) | Yes, `--quality fast` (picked automatically) | 3 GB VRAM, 34 ms/frame on a 3080 Ti |
+| **NVIDIA, 8 GB or more** (RTX 3070, 4060, 4090 …) | Yes | default `--quality fast`: 3 GB VRAM, 34 ms/frame on a 3080 Ti |
+| **NVIDIA, 12 GB or more** | Yes, and `--quality full` fits too | full: 11 GB VRAM, 83 ms/frame on a 3080 Ti, 62 ms/frame on a 4090 |
 | **Apple Silicon** | Yes, slower | M2 Max: ~500 ms/frame, a 12 s clip in about 2.5 min |
 | **CPU only** | Yes, slow | ~1.8 s/frame |
 | **Host RAM** | 16 GB covers clips up to ~27 s at 720p | peak = 2 GB + 224 MB per second of 720p; the tool refuses before starting if a clip won't fit |
 
-**`--quality`** is yours to choose: `auto` (default) takes `full` on cards with 11.5 GB or more and `fast` below that; pass `full` or `fast` to decide yourself. The difference, measured on the same 294-frame clip: the model sees the frame at 518 px vs 364 px on the short side; large shapes — people, props, who is nearer — come out identical, fine detail is softer at `fast` (a loose strand of hair merges into the cheek). Mean difference 5.3 of 255 grey levels, 95 % of pixels within 15, edge energy −4.5 %. For copying blocking and camera, `fast` is enough; for close-ups where fine silhouettes matter, use `full`. Experts can set the exact size with `--input-size`.
+**`--quality` — the resolution the model works at.** The output video is always the size of your source; this sets the size of the picture the depth model looks at.
+
+| `--quality` | model sees (16:9 · 9:16 · 4:3) | VRAM | speed | detail |
+|---|---|---|---|---|
+| `fast` (default) | 644×364 · 364×644 · 490×364 | ~3 GB | 34 ms/frame on a 3080 Ti | large shapes identical to full; a loose strand of hair merges into the cheek |
+| `full` | 924×518 · 518×924 · 686×518 | ~11 GB | 83 ms/frame on a 3080 Ti | sharper fine silhouettes |
+
+We recommend `fast`: for copying blocking and camera it is all a video model needs — the demo takes were made from a depth map shrunk to 320×176 before it even reached MiniMax H3, far below either setting. Measured full against fast on the same 294-frame clip: mean difference 5.3 of 255 grey levels, 95 % of pixels within 15, edge energy −4.5 %. Use `full` for close-ups where thin silhouettes matter and you have the VRAM. The run prints the exact resolution it uses (`model  fast: the model sees 644x364`) and records it in `--metrics`. Experts can set any short side with `--input-size`.
 
 Verified on rented cards on 2026-09-12; the numbers are in the `--metrics` output of those runs.
 

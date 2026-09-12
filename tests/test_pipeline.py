@@ -85,8 +85,10 @@ def test_max_res_caps_output_not_inference(tmp_path):
     """`--max-res` must not shrink what the model sees (0.3.2 regression lock: a 320-px cap
     used to feed the model a thumbnail that it upsampled internally)."""
     src = _clip(tmp_path / "src.mp4", frames=4, w=1280, h=736)
-    p = plan(RunConfig(input=src, output=tmp_path / "o.mp4", backend="fake", target="h3", max_res=320))
+    p = plan(RunConfig(input=src, output=tmp_path / "o.mp4", backend="fake", target="h3", max_res=320, quality="full"))
     assert p.proc_h == 518 and p.proc_w == 900  # model resolution
+    p = plan(RunConfig(input=src, output=tmp_path / "o.mp4", backend="fake", target="h3", max_res=320))
+    assert p.proc_h == 364  # default quality is fast
     assert (p.out_w, p.out_h) == (320, 160)  # output capped, multiple of 32
 
 
@@ -127,27 +129,36 @@ def test_cli_batch_loads_model_once_and_skips_bad_clip(tmp_path, monkeypatch):
 
 
 def test_quality_resolution(tmp_path, monkeypatch):
-    """auto: full on a big card, fast on a small one; full/fast are the user's call regardless;
-    an explicit --input-size beats everything."""
+    """fast is the default; full is the user's call (with a warning on a small card);
+    an explicit --input-size beats --quality."""
     import reshot.pipeline as pl
 
     def cfg(**kw):
         return RunConfig(input=tmp_path / "x.mp4", output=tmp_path / "y.mp4", backend="fake", **kw)
 
-    monkeypatch.setattr(pl, "_cuda_total_bytes", lambda device: 8 * 2**30)
     steps = []
 
     class Rep:
         def step(self, tag, msg):
             steps.append(tag)
 
-    assert pl.resolve_input_size(cfg(), "cuda", Rep()) == 364 and steps == ["quality"]
-    assert pl.resolve_input_size(cfg(quality="full"), "cuda") == 518  # user insists
-    assert pl.resolve_input_size(cfg(quality="fast"), "cuda") == 364
+    monkeypatch.setattr(pl, "_cuda_total_bytes", lambda device: 8 * 2**30)
+    assert pl.resolve_input_size(cfg(), "cuda", Rep()) == 364 and steps == []
+    assert pl.resolve_input_size(cfg(quality="full"), "cuda", Rep()) == 518 and steps == ["warn"]
     assert pl.resolve_input_size(cfg(input_size=700), "cuda") == 700
     monkeypatch.setattr(pl, "_cuda_total_bytes", lambda device: 24 * 2**30)
-    assert pl.resolve_input_size(cfg(), "cuda") == 518
-    assert pl.resolve_input_size(cfg(), "cpu") == 518
-    assert pl.resolve_input_size(cfg(quality="fast"), "cpu") == 364
+    steps.clear()
+    assert pl.resolve_input_size(cfg(quality="full"), "cuda", Rep()) == 518 and steps == []
+    assert pl.resolve_input_size(cfg(), "cpu") == 364
     with pytest.raises(InputError):
-        cfg(quality="ultra")
+        cfg(quality="auto")
+
+
+def test_model_input_resolution_matches_the_vendored_resize():
+    """The resolutions printed in the docs are the ones the model really sees."""
+    from reshot.pipeline import model_input_resolution as mir
+
+    assert mir(1280, 720, 364) == (644, 364) and mir(1280, 720, 518) == (924, 518)
+    assert mir(720, 1280, 364) == (364, 644) and mir(720, 1280, 518) == (518, 924)
+    assert mir(1024, 768, 364) == (490, 364) and mir(1024, 768, 518) == (686, 518)
+    assert mir(1080, 1080, 518) == (518, 518)

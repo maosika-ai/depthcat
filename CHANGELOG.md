@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.6 — 2026-09-12
+- **`--quality fast` is the default** (the model sees 644×364 for 16:9, 364×644 for 9:16;
+  ~3 GB VRAM, 34 ms/frame on a 3080 Ti). `full` (924×518 / 518×924, ~11 GB) is the user's
+  choice; asking for it on a card under 11.5 GB prints a warning first. `auto` is gone.
+- The run prints and records (`model_input_resolution` in metrics) the exact resolution the
+  model works at; `model_input_resolution()` is public.
+
 ## 0.3.5 — 2026-09-12
 - **`--quality auto|full|fast`** replaces the silent small-GPU fallback of 0.3.4: `full` is 518 px,
   `fast` 364 px, `auto` (default) picks by VRAM and says which it chose. `--input-size` stays as

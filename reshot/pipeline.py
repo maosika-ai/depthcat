@@ -79,7 +79,7 @@ class RunResult:
 def _planning_input_size(cfg: RunConfig) -> int:
     if cfg.input_size is not None:
         return cfg.input_size
-    return QUALITY_INPUT_SIZE.get(cfg.quality, QUALITY_INPUT_SIZE["full"])
+    return QUALITY_INPUT_SIZE[cfg.quality]
 
 
 def plan(cfg: RunConfig) -> Plan:
@@ -105,8 +105,6 @@ def plan(cfg: RunConfig) -> Plan:
     # from a thumbnail. The three demo takes were made from full-resolution depth
     # downscaled afterwards, which is what this now does.
     cap = cfg.max_res if cfg.max_res > 0 else 10**9
-    # RAM planning uses the largest size `quality` may resolve to (auto → full), so the
-    # estimate is never below what a big card will actually do.
     proc_max_res = processing_max_res(src_w, src_h, _planning_input_size(cfg))
     scale = min(1.0, proc_max_res / max(src_w, src_h))
     proc_w, proc_h = (int(round(src_w * scale / 2) * 2), int(round(src_h * scale / 2) * 2))
@@ -222,6 +220,8 @@ def _run_one(cfg: RunConfig, rep: Reporter, backend, backend_name: str) -> RunRe
         f"{backend.info.name}/{backend.info.variant} on {backend.device} ({precision}), licence {backend.info.license}",
     )
     input_size = resolve_input_size(cfg, backend.device, rep)
+    mw, mh = model_input_resolution(w, h, input_size)
+    rep.step("model", f"{cfg.quality if cfg.input_size is None else 'custom'}: the model sees {mw}x{mh}")
     t1 = time.time()
     depths = backend.infer(frames, fps, input_size=input_size)
     depth_seconds = time.time() - t1
@@ -267,6 +267,7 @@ def _run_one(cfg: RunConfig, rep: Reporter, backend, backend_name: str) -> RunRe
         "frames": t,
         "fps": fps,
         "input_size_used": input_size,
+        "model_input_resolution": [mw, mh],
         "depth_seconds": round(depth_seconds, 3),
         "ms_per_frame": round(depth_seconds / t * 1000, 1),
         "total_seconds": round(total, 2),
@@ -315,14 +316,17 @@ def extract(
     return backend.infer(frames, fps, input_size=input_size), fps
 
 
-#: Model working size (short side) per quality. Measured 2026-09-12 on an RTX 3080 Ti (12 GB),
-#: 294 frames of 736×1280:
-#:   full 518 → 7.4 GiB allocated / 10.9 GiB reserved, 83 ms/frame; OOMs on an 8 GB card
-#:   fast 364 → 2.25 / 3.0 GiB, 34 ms/frame; runs on 6 GB
+#: Model working size (short side) per quality. What the model actually sees, for common
+#: clips (long side rounded to a multiple of 14 by the model's own resize):
+#:   fast 364 → 644×364 (16:9) · 364×644 (9:16) · 490×364 (4:3)   — the default
+#:   full 518 → 924×518 (16:9) · 518×924 (9:16) · 686×518 (4:3)
+#: Measured 2026-09-12 on an RTX 3080 Ti (12 GB), 294 frames of 736×1280:
+#:   fast → 2.25 GiB allocated / 3.0 GiB reserved, 34 ms/frame; runs on 6 GB
+#:   full → 7.4 / 10.9 GiB, 83 ms/frame; OOMs on an 8 GB card
 #: Against each other over the whole clip: mean |Δ| 5.3 grey levels, 95th percentile 15,
-#: edge energy −4.5 % — large shapes identical, fine detail (a strand of hair) softer at 364.
-QUALITY_INPUT_SIZE = {"full": 518, "fast": 364}
-VRAM_FULL_SIZE_MIN_BYTES = int(11.5 * 2**30)  # below this, `auto` picks fast
+#: edge energy −4.5 % — large shapes identical, fine detail (a strand of hair) softer at fast.
+QUALITY_INPUT_SIZE = {"fast": 364, "full": 518}
+VRAM_FULL_SIZE_MIN_BYTES = int(11.5 * 2**30)  # `full` below this gets a warning up front
 
 
 def _cuda_total_bytes(device: str) -> int:
@@ -337,26 +341,43 @@ def _cuda_total_bytes(device: str) -> int:
         return 0
 
 
-def resolve_input_size(cfg: RunConfig, device: str, rep: Reporter | None = None) -> int:
-    """What the model will actually see, from `quality` / `input_size` / the GPU.
+def model_input_resolution(width: int, height: int, input_size: int) -> tuple[int, int]:
+    """`(w, h)` the model will actually see for a `width×height` frame at `input_size`.
 
-    Precedence: an explicit `input_size` wins; then `quality` full/fast; `auto` is full on
-    a card with ≥ 11.5 GB (or anything that is not CUDA) and fast below that, and says so.
-    """
+    Same arithmetic as the vendored model's resize (short side → input_size, long side
+    rounded to a multiple of 14, and the model's own trim for clips wider than 16:9), so
+    the number we print is the number that happens."""
+    from .third_party.video_depth_anything.util.transform import Resize
+
+    ratio = max(width, height) / min(width, height)
+    if ratio > 1.78:  # mirrors video_depth.py
+        input_size = round(int(input_size * 1.777 / ratio) / 14) * 14
+    r = Resize(
+        width=input_size,
+        height=input_size,
+        resize_target=False,
+        keep_aspect_ratio=True,
+        ensure_multiple_of=14,
+        resize_method="lower_bound",
+    )
+    w, h = r.get_size(width, height)
+    return int(w), int(h)
+
+
+def resolve_input_size(cfg: RunConfig, device: str, rep: Reporter | None = None) -> int:
+    """What the model will work at, from `quality` / `input_size`; warns when `full` is
+    asked of a GPU that is known to be too small for it (the run still proceeds — it is
+    the user's call — but the OOM will not be a surprise)."""
     rep = rep or NullReporter()
-    if cfg.input_size is not None:
-        return cfg.input_size
-    if cfg.quality in QUALITY_INPUT_SIZE:
-        return QUALITY_INPUT_SIZE[cfg.quality]
+    size = cfg.input_size if cfg.input_size is not None else QUALITY_INPUT_SIZE[cfg.quality]
     total = _cuda_total_bytes(device)
-    if total and total < VRAM_FULL_SIZE_MIN_BYTES:
+    if total and total < VRAM_FULL_SIZE_MIN_BYTES and size > QUALITY_INPUT_SIZE["fast"]:
         rep.step(
-            "quality",
-            f"auto → fast on a {gib(total)} GPU (full needs ~11 GB; fast ~3 GB, 2× faster, "
-            f"softer fine detail). Force it with --quality full.",
+            "warn",
+            f"{gib(total)} GPU: --quality full needs ~11 GB of VRAM and will likely run out; "
+            f"--quality fast (the default) needs ~3 GB",
         )
-        return QUALITY_INPUT_SIZE["fast"]
-    return QUALITY_INPUT_SIZE["full"]
+    return size
 
 
 def _license_ok(metrics: dict) -> bool:

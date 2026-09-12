@@ -40,7 +40,7 @@ reshot 输入 -o 输出 [选项]
 |---|---|---|
 | `--model small\|base\|large` | `small` | 只有 `small` 是 Apache-2.0。`base`/`large` 是 CC-BY-NC-4.0：研究可用，运行时会警告。 |
 | `--device auto\|cuda\|mps\|cpu` | `auto` | CUDA 用 fp16，其余 fp32（MPS 上 fp16 慢到不可用）。 |
-| `--quality Q` | `auto` | `full` = 模型看短边 518 像素（约 11 GB 显存），`fast` = 364 像素（约 3 GB、快一倍、细节略软：平均差 5.3/255、边缘 −4.5%）。`auto` = ≥11.5 GB 的卡取 full、以下取 fast。 |
+| `--quality Q` | `fast` | 模型工作的分辨率。`fast` = 16:9 是 644×364、9:16 是 364×644（约 3 GB 显存）；`full` = 924×518 / 518×924（约 11 GB、慢 2.5 倍、细轮廓更锐：平均差 5.3/255、边缘 −4.5%）。不影响输出尺寸。 |
 | `--input-size N` | — | 专家用：精确指定模型短边，14 的倍数，覆盖 `--quality`。 |
 | `--checkpoint 路径` | – | 本地 `.pth`，跳过下载。 |
 
@@ -197,7 +197,7 @@ MPS 上 fp16 跑不完，所以强制 fp32。736×1280 约 0.5 秒/帧，12 秒�
 
 - **模型**：[Video Depth Anything](https://github.com/DepthAnything/Video-Depth-Anything)（CVPR 2025）。
   它的时序模块是深度不闪的原因；单图模型逐帧跑必闪。模型代码原样 vendored 在 `third_party/`（只改两行 import）。
-- **分辨率**：模型工作在短边 518 px。喂更大的帧只会让每帧存的浮点深度变大；reshot 按这个尺寸解码，放大的是 8 位结果。
+- **分辨率**：模型工作在 `--quality` 定的尺寸——16:9 的片 fast 是 644×364、full 是 924×518。喂更大的帧只会让每帧存的浮点深度变大；reshot 按这个尺寸解码，最后把 8 位结果放大回原片尺寸。
 - **归一化**：`(d − min) / (max − min)` 对**全部帧**做一次；可选百分位裁剪。
 - **编码**：`libx264 -crf 12 -pix_fmt yuv420p -g 2·fps -movflags +faststart`。
 
