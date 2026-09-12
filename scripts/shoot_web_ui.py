@@ -32,7 +32,7 @@ async def shoot(url: str, video: Path, out: Path, width: int, height: int, lang:
             "--no-first-run",
             f"--window-size={width},{height}",
             "--hide-scrollbars",
-            f"--user-data-dir=/tmp/reshot-shoot-profile",
+            "--user-data-dir=/tmp/reshot-shoot-profile",
             "about:blank",
         ],
         stdout=subprocess.DEVNULL,
