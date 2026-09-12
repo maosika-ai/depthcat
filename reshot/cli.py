@@ -4,6 +4,8 @@
     reshot in.mp4 -o out.mp4 --target h3     # 24 fps, ×32 dims, ≤15 s for MiniMax H3
     reshot in.mp4 -o out.mp4 --npz d.npz --metrics run.json
     reshot clips/*.mp4 -o depth/ --target seedance   # batch: one model load, out/<name>_depth.mp4
+    reshot                                    # no arguments: local web UI, opens in the browser
+    reshot web --port 8765 --no-browser --out ~/ReShot
 
 Batch mode (several inputs, or `-o` naming a directory): `--npz` / `--metrics`, if given,
 are directories too and get `<name>.npz` / `<name>.json` per clip. One bad clip is
@@ -141,7 +143,30 @@ def config_from_args(args: argparse.Namespace) -> RunConfig:
     return configs_from_args(args)[0]
 
 
+def _web_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="reshot web", description="Local web UI for ReShot (everything stays on this machine)."
+    )
+    p.add_argument(
+        "--port", type=int, default=8765, help="port to listen on (default 8765; the next free one is used if taken)"
+    )
+    p.add_argument("--out", type=Path, default=None, help="where depth videos are saved (default ~/ReShot)")
+    p.add_argument("--no-browser", action="store_true", help="don't open the browser automatically")
+    p.add_argument("-v", "--verbose", action="store_true")
+    return p
+
+
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    # `reshot` alone, or `reshot web …`: the web UI. Anything else is the classic CLI.
+    if not argv or argv[0] == "web":
+        wargs = _web_parser().parse_args(argv[1:] if argv else [])
+        logging.basicConfig(
+            level=logging.INFO if wargs.verbose else logging.WARNING, format="%(levelname)s %(name)s: %(message)s"
+        )
+        from .web import serve
+
+        return serve(out_dir=wargs.out, port=wargs.port, open_browser=not wargs.no_browser)
     args = build_parser().parse_args(argv)
     logging.basicConfig(
         level=logging.INFO if args.verbose else logging.WARNING, format="%(levelname)s %(name)s: %(message)s"

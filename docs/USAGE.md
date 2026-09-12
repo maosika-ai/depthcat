@@ -29,6 +29,23 @@ Model weights (111 MB) download from Hugging Face on first run into `~/.cache/hu
 Offline machines: copy that cache, or pass `--checkpoint /path/video_depth_anything_vits.pth`.
 In China: `export HF_ENDPOINT=https://hf-mirror.com`.
 
+## Web page
+
+`reshot` with no arguments starts a local web page and opens it in your browser. It is the
+same pipeline behind a form: drop a clip, choose the target model and quality, run, preview
+reference and depth side by side, download. Nothing leaves your machine; the server listens on
+127.0.0.1 only. Results are saved to `~/ReShot` with `<clip>_depth_<target>.mp4` names (never
+overwriting an earlier result) and a `.json` of metrics next to each.
+
+```bash
+reshot                                   # http://127.0.0.1:8765 (next free port if taken)
+reshot web --port 9000 --out ./depth     # choose port and folder
+reshot web --no-browser                  # print the URL only, e.g. over SSH
+```
+
+The model loads once when the first job runs and stays loaded; later runs start immediately.
+Jobs queue one after another (one GPU).
+
 ## Command line
 
 ```

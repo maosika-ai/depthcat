@@ -28,6 +28,20 @@ PyTorch 不锁 CUDA 版本；如果 `pip` 装错了，先按 https://pytorch.org
 离线机器：把这个缓存目录拷过去，或用 `--checkpoint /路径/video_depth_anything_vits.pth`。
 国内：`export HF_ENDPOINT=https://hf-mirror.com`。
 
+## 网页
+
+只敲 `reshot` 不带参数，会在本机起一个网页并用浏览器打开。它和命令行是同一条流水线，只是套了个表单：
+拖入片子、选给哪家模型用和画质、运行、参考片与深度图并排预览、下载。什么都不会离开你的电脑，服务只监听
+127.0.0.1。结果存在 `~/ReShot`，文件名 `<片名>_depth_<目标>.mp4`（不会覆盖之前的结果），旁边有一份同名 `.json` 指标。
+
+```bash
+reshot                                   # http://127.0.0.1:8765（被占就用下一个空闲端口）
+reshot web --port 9000 --out ./depth     # 指定端口和目录
+reshot web --no-browser                  # 只打印地址不开浏览器，比如通过 SSH 用
+```
+
+模型在第一次运行时加载一次，之后常驻；后面的任务立刻开始。任务排队一个个跑（一块显卡）。
+
 ## 命令行
 
 ```

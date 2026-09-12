@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ReShot · 猫斯卡</title>
+<style>
+/* Studio Air tokens — the Maosika visual system (dark studio, lime accent, system fonts). */
+:root{
+  --bg:#0d0d0f;--surface:#1a1a1e;--surface-2:#28282c;--card:#101216;
+  --text:#eaeaef;--text-2:#adadb8;--text-3:#72727c;
+  --accent:#d8ff42;--accent-bright:#e2f060;--accent-border:rgba(216,255,66,.45);--accent-ink:#2a3208;--active-ink:#0a0b0d;
+  --error:#ff6b6b;--line:rgba(255,255,255,.07);--line-2:rgba(255,255,255,.12);
+  --cinema-bg:#0b0f0f;--cinema-deep:#080b0b;--teal:#5cc4bc;--teal-border:rgba(92,196,188,.32);--teal-soft:rgba(92,196,188,.12);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.22,1,.36,1);--radius:22px;--radius-sm:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 var(--font);letter-spacing:-.01em;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+button{font:inherit;letter-spacing:inherit;cursor:pointer}
+[hidden]{display:none!important}
+
+/* header */
+.hdr{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:.5px solid rgba(255,255,255,.06);background:rgba(13,13,15,.85);backdrop-filter:blur(14px);position:sticky;top:0;z-index:5}
+.logo{display:inline-flex;align-items:center;gap:10px;font-weight:750;font-size:1.25rem;color:var(--text);white-space:nowrap}
+.logo:hover{color:var(--accent-bright)}
+.logo-mark{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:10px;font-size:1.05rem;font-weight:800;color:var(--accent-ink);background:linear-gradient(160deg,var(--accent-bright),var(--accent));border:.5px solid var(--accent-border);box-shadow:0 2px 10px rgba(216,255,66,.18)}
+.logo-sep{color:var(--text-3);font-weight:500;margin:0 2px}
+.logo-app{color:var(--text)}
+.hdr-right{display:flex;align-items:center;gap:14px;font-size:.875rem;color:var(--text-2)}
+.hdr-right a{color:var(--text-2)}.hdr-right a:hover{color:var(--accent-bright)}
+.lang{border:1px solid var(--line-2);background:transparent;color:var(--text-2);border-radius:999px;padding:4px 11px;font-size:.78rem;font-weight:600}
+.lang:hover{color:var(--text);border-color:rgba(255,255,255,.22)}
+
+/* page */
+.wrap{max-width:1120px;margin:0 auto;padding:26px 28px 60px}
+.intro{margin:6px 0 20px}
+.intro h1{margin:0 0 6px;font-size:1.5rem;font-weight:700;letter-spacing:-.02em}
+.intro p{margin:0;color:var(--text-2);font-size:.95rem;max-width:760px}
+
+/* the one card */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);display:grid;grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr);overflow:hidden}
+.stage{background:var(--cinema-deep);border-right:1px solid var(--line);padding:22px;display:flex;flex-direction:column;gap:14px;min-height:520px}
+.opts{padding:22px 24px 24px;display:flex;flex-direction:column;gap:20px}
+
+/* stage: drop zone / players */
+.drop{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-radius:18px;background:linear-gradient(180deg,#1c2128,#12151a);border:1px solid var(--line);cursor:pointer;transition:border-color .18s,background .18s;text-align:center;padding:30px}
+.drop:hover,.drop.is-over{border-color:var(--teal-border);background:linear-gradient(180deg,#1e262b,#12181a)}
+.drop .big{font-size:1.05rem;font-weight:650;color:var(--text)}
+.drop .sub{font-size:.85rem;color:var(--text-2)}
+.drop .hint{font-size:.78rem;color:var(--text-3);margin-top:8px}
+.drop .icon{width:44px;height:44px;border-radius:12px;background:var(--teal-soft);border:1px solid var(--teal-border);display:flex;align-items:center;justify-content:center;color:var(--teal);font-size:1.3rem}
+.players{display:grid;grid-template-columns:1fr;gap:12px;align-content:start}
+/* portrait clips sit side by side, landscape clips stack — either way the boxes hug the video */
+.players.two.portrait{grid-template-columns:1fr 1fr}
+.player{position:relative;border-radius:18px;overflow:hidden;background:#000;border:1px solid var(--line)}
+.player video{display:block;width:100%;height:auto;max-height:56vh;object-fit:contain;background:#000}
+.players.two.portrait .player video{max-height:62vh}
+.player .tag{position:absolute;top:10px;left:10px;font-size:.72rem;font-weight:650;letter-spacing:.02em;padding:4px 9px;border-radius:999px;background:rgba(0,0,0,.55);color:var(--text);border:1px solid rgba(255,255,255,.12)}
+.player .tag.depth{background:rgba(92,196,188,.18);border-color:var(--teal-border);color:#dff7f4}
+.meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--text-2);font-family:var(--mono)}
+.meta b{color:var(--text);font-weight:600;font-family:var(--font)}
+.meta .name{font-family:var(--font);color:var(--text);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stage-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.ghost{border:1px solid var(--line-2);background:transparent;color:var(--text);border-radius:12px;padding:7px 12px;font-size:.82rem;font-weight:600}
+.ghost:hover{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.04)}
+.ghost.teal{border-color:var(--teal-border);color:#dff7f4;background:var(--teal-soft)}
+
+/* options */
+.opt h3{margin:0 0 8px;font-size:.8rem;font-weight:650;letter-spacing:.02em;color:var(--text-2);text-transform:uppercase}
+.seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:4px;gap:2px}
+.seg button{flex:1;border:0;background:transparent;color:var(--text-2);border-radius:13px;padding:9px 6px;font-size:.86rem;font-weight:650;white-space:nowrap;transition:color .15s,background .15s}
+.seg button:hover{color:var(--text)}
+.seg button.on{background:var(--accent);color:var(--active-ink)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.note{margin:8px 2px 0;font-size:.8rem;color:var(--text-3);line-height:1.5}
+.note b{color:var(--text-2);font-weight:600}
+.warn{margin-top:8px;font-size:.8rem;color:#ffd08a;background:rgba(255,184,108,.08);border:1px solid rgba(255,184,108,.25);border-radius:12px;padding:8px 11px}
+
+details.adv{border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
+details.adv summary{cursor:pointer;list-style:none;padding:11px 14px;font-size:.85rem;font-weight:600;color:var(--text-2);display:flex;justify-content:space-between;align-items:center}
+details.adv summary::-webkit-details-marker{display:none}
+details.adv summary::after{content:"+";font-size:1rem;color:var(--text-3)}
+details.adv[open] summary::after{content:"−"}
+.adv-body{padding:2px 14px 14px;display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
+.field label{display:block;font-size:.78rem;color:var(--text-2);margin-bottom:5px;font-weight:600}
+.field input[type=number]{width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 10px;font:inherit;font-size:.9rem}
+.field input[type=number]:focus{outline:none;border-color:var(--accent-border)}
+.field .tip{font-size:.72rem;color:var(--text-3);margin-top:4px;line-height:1.4}
+.check{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--text);cursor:pointer;grid-column:1/-1}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+
+.cta{margin-top:auto;border:0;border-radius:14px;padding:14px 18px;font-size:1rem;font-weight:700;color:var(--accent-ink);background:var(--accent);transition:transform .18s var(--ease),box-shadow .18s,background .15s}
+.cta:hover:not(:disabled){background:var(--accent-bright);transform:scale(1.02);box-shadow:0 4px 14px rgba(216,255,66,.32)}
+.cta:active:not(:disabled){transform:scale(.98)}
+.cta:disabled{opacity:.45;cursor:not-allowed}
+
+/* progress + result */
+.prog{border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);padding:12px 14px;font-size:.82rem}
+.prog .row{display:flex;gap:10px;padding:3px 0;color:var(--text-2)}
+.prog .row .t{font-family:var(--mono);color:var(--text-3);width:52px;flex:none}
+.prog .row .k{font-family:var(--mono);color:var(--teal);width:60px;flex:none}
+.prog .row.warn-row .k{color:#ffd08a}
+.prog .spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(216,255,66,.25);border-top-color:var(--accent);border-radius:50%;animation:spin .9s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.result{border:1px solid var(--teal-border);background:var(--teal-soft);border-radius:var(--radius-sm);padding:14px}
+.result h4{margin:0 0 8px;font-size:.95rem;font-weight:700;color:#dff7f4}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{font-size:.74rem;font-family:var(--mono);color:var(--text-2);border:1px solid var(--line-2);border-radius:999px;padding:3px 9px}
+.chip b{color:var(--text);font-weight:600}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border-radius:12px;padding:9px 14px;font-size:.85rem;font-weight:650;border:1px solid var(--line-2);background:transparent;color:var(--text)}
+.btn:hover{border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.04)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.primary:hover{background:var(--accent-bright)}
+.path{margin-top:10px;font-size:.74rem;color:var(--text-3);font-family:var(--mono);word-break:break-all}
+.next{margin-top:12px;border-top:1px solid rgba(255,255,255,.08);padding-top:10px;font-size:.82rem;color:var(--text-2);line-height:1.55}
+.next code{display:block;margin-top:6px;padding:9px 11px;border-radius:10px;background:rgba(0,0,0,.35);color:var(--text);font-family:var(--font);font-size:.8rem;white-space:pre-wrap}
+.err{border:1px solid rgba(255,107,107,.4);background:rgba(255,107,107,.08);color:#ffb3b3;border-radius:var(--radius-sm);padding:12px 14px;font-size:.85rem;white-space:pre-wrap}
+
+footer{margin-top:26px;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.8rem;color:var(--text-3)}
+footer a{color:var(--text-2)}footer a:hover{color:var(--accent-bright)}
+
+@media (max-width:900px){
+  .card{grid-template-columns:1fr}
+  .stage{border-right:0;border-bottom:1px solid var(--line);min-height:0}
+  .wrap{padding:18px 16px 40px}.hdr{padding:0 16px}
+  .adv-body{grid-template-columns:1fr}
+  .players.two{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <a class="logo" href="https://www.maosika.com" target="_blank" rel="noopener" title="www.maosika.com">
+    <span class="logo-mark" aria-hidden="true">M</span>
+    <span data-i18n="brand">猫斯卡</span><span class="logo-sep">·</span><span class="logo-app">ReShot</span>
+  </a>
+  <div class="hdr-right">
+    <a href="https://www.maosika.com" target="_blank" rel="noopener" data-i18n="hdr.maosika">去猫斯卡做 AI 短剧 ↗</a>
+    <a href="https://github.com/maosika-ai/reshot" target="_blank" rel="noopener">GitHub</a>
+    <button class="lang" id="lang" type="button">EN</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="intro">
+    <h1 data-i18n="intro.h1">复制走位，不复制演员。</h1>
+    <p data-i18n="intro.p">把一段参考视频变成深度图视频，交给 Seedance 或 MiniMax H3 当参考，它就会照着这段的动作和运镜再拍一遍——人物换成你的。所有处理都在这台电脑上完成。</p>
+  </div>
+
+  <section class="card">
+    <!-- left: source / result stage -->
+    <div class="stage">
+      <div class="drop" id="drop" role="button" tabindex="0">
+        <div class="icon">▶</div>
+        <div class="big" data-i18n="drop.big">拖入参考视频，或点击选择</div>
+        <div class="sub" data-i18n="drop.sub">mp4 / mov / webm · 15 秒以内效果最好</div>
+        <div class="hint" data-i18n="drop.hint">视频不会上传到任何服务器</div>
+        <input type="file" id="file" accept="video/*,.mp4,.mov,.webm,.mkv" hidden>
+      </div>
+      <div class="players" id="players" hidden>
+        <div class="player" id="srcPlayer"><span class="tag" data-i18n="tag.src">参考片</span><video id="srcVideo" controls muted loop playsinline></video></div>
+        <div class="player" id="outPlayer" hidden><span class="tag depth" data-i18n="tag.depth">深度图</span><video id="outVideo" controls muted loop playsinline></video></div>
+      </div>
+      <div class="meta" id="meta" hidden></div>
+      <div class="stage-foot" id="stageFoot" hidden>
+        <button class="ghost" id="changeBtn" type="button" data-i18n="stage.change">换一段视频</button>
+        <button class="ghost teal" id="syncBtn" type="button" hidden data-i18n="stage.sync">同步播放</button>
+      </div>
+    </div>
+
+    <!-- right: options -->
+    <div class="opts">
+      <div class="opt">
+        <h3 data-i18n="opt.target">给谁用</h3>
+        <div class="seg" id="target">
+          <button type="button" data-v="seedance" class="on">Seedance</button>
+          <button type="button" data-v="h3">MiniMax H3</button>
+          <button type="button" data-v="wan">Wan</button>
+          <button type="button" data-v="none" data-i18n="opt.none">通用</button>
+        </div>
+        <div class="note" id="targetNote"></div>
+        <div class="warn" id="lenWarn" hidden></div>
+      </div>
+
+      <div class="opt">
+        <h3 data-i18n="opt.quality">画质</h3>
+        <div class="seg" id="quality">
+          <button type="button" data-v="fast" class="on" data-i18n="q.fast">快速（推荐）</button>
+          <button type="button" data-v="full" data-i18n="q.full">完整</button>
+        </div>
+        <div class="note" id="qualityNote"></div>
+      </div>
+
+      <details class="adv">
+        <summary data-i18n="adv.title">高级选项</summary>
+        <div class="adv-body">
+          <div class="field"><label for="maxSide" data-i18n="adv.maxSide">输出长边上限</label><input type="number" id="maxSide" min="0" step="2" placeholder="0"><div class="tip" data-i18n="adv.maxSideTip">0 = 原片尺寸。给 MiniMax H3 当参考视频建议 320。</div></div>
+          <div class="field"><label for="maxFrames" data-i18n="adv.maxFrames">只处理前 N 帧</label><input type="number" id="maxFrames" min="1" step="1" placeholder="全部"><div class="tip" data-i18n="adv.maxFramesTip">试效果时用，比如 48。</div></div>
+          <div class="field"><label for="clip" data-i18n="adv.clip">裁掉两端 %</label><input type="number" id="clip" min="0" max="10" step="0.1" value="0"><div class="tip" data-i18n="adv.clipTip">有东西贴着镜头把其他全压黑时用 0.5–1。</div></div>
+          <div class="field"><label for="gamma">Gamma</label><input type="number" id="gamma" min="0.2" max="3" step="0.05" value="1"><div class="tip" data-i18n="adv.gammaTip">&gt;1 压暗中间调，把近处拉开。一般不动。</div></div>
+          <label class="check"><input type="checkbox" id="invert"><span data-i18n="adv.invert">反转：远白近黑（默认近白远黑，Seedance / H3 / ControlNet 都要这个）</span></label>
+        </div>
+      </details>
+
+      <div class="prog" id="prog" hidden></div>
+      <div class="err" id="err" hidden></div>
+      <div class="result" id="result" hidden></div>
+
+      <button class="cta" id="run" type="button" disabled data-i18n="cta">生成深度图</button>
+    </div>
+  </section>
+
+  <footer>
+    <span><span data-i18n="foot.by">出品</span> <a href="https://www.maosika.com" target="_blank" rel="noopener">猫斯卡 · www.maosika.com</a></span>
+    <span data-i18n="foot.what">AI 短剧 / AI 短视频自动生产系统</span>
+    <a href="https://github.com/maosika-ai/reshot" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/maosika-ai/ComfyUI-ReShot" target="_blank" rel="noopener" data-i18n="foot.comfy">ComfyUI 节点</a>
+    <span id="ver"></span>
+  </footer>
+</main>
+
+<script>
+(() => {
+const I18N = {
+  zh: {
+    brand:"猫斯卡", "hdr.maosika":"去猫斯卡做 AI 短剧 ↗",
+    "intro.h1":"复制走位，不复制演员。",
+    "intro.p":"把一段参考视频变成深度图视频，交给 Seedance 或 MiniMax H3 当参考，它就会照着这段的动作和运镜再拍一遍——人物换成你的。所有处理都在这台电脑上完成。",
+    "drop.big":"拖入参考视频，或点击选择","drop.sub":"mp4 / mov / webm · 15 秒以内效果最好","drop.hint":"视频不会上传到任何服务器",
+    "tag.src":"参考片","tag.depth":"深度图","stage.change":"换一段视频","stage.sync":"同步播放",
+    "opt.target":"给谁用","opt.none":"通用","opt.quality":"画质","q.fast":"快速（推荐）","q.full":"完整",
+    "adv.title":"高级选项","adv.maxSide":"输出长边上限","adv.maxSideTip":"0 = 原片尺寸。给 MiniMax H3 当参考视频建议 320。",
+    "adv.maxFrames":"只处理前 N 帧","adv.maxFramesTip":"试效果时用，比如 48。","adv.clip":"裁掉两端 %","adv.clipTip":"有东西贴着镜头把其他全压黑时用 0.5–1。",
+    "adv.gammaTip":">1 压暗中间调，把近处拉开。一般不动。","adv.invert":"反转：远白近黑（默认近白远黑，Seedance / H3 / ControlNet 都要这个）",
+    cta:"生成深度图", "cta.running":"生成中…", "cta.again":"再生成一次",
+    "foot.by":"出品","foot.what":"AI 短剧 / AI 短视频自动生产系统","foot.comfy":"ComfyUI 节点",
+    t_seedance:"<b>Seedance 2.0 / 2.5 参考视频</b>：24 fps，宽高 16 的倍数，≤ 15 秒。上传后提示词写「参考@视频1的动作与运镜」。",
+    t_h3:"<b>MiniMax H3</b>：24 fps，宽高 32 的倍数，≤ 15 秒。当参考视频挂 &lt;Video 1&gt; 时，高级选项里把长边限到 320 效果最好。",
+    t_wan:"<b>Wan 2.1 VACE</b>：16 fps，宽高 16 的倍数，作为 control_video。（这条我们未端到端验证。）",
+    t_none:"<b>通用</b>：保持原 fps，只把宽高凑成偶数。给任何认深度视频的模型。",
+    q_fast:"模型看 <b>644×364</b>（16:9）/ 364×644（9:16）。约 3 GB 显存，快。复制走位和运镜足够。",
+    q_full:"模型看 <b>924×518</b> / 518×924。约 11 GB 显存，慢 2.5 倍，细轮廓更锐。特写、在意发丝时用。",
+    lenWarn:"这段 {s} 秒，{t} 只收 ≤ {m} 秒的参考视频——先剪短，或在高级选项里限制帧数。",
+    meta_fmt:"{w}×{h} · {fps} fps · {n} 帧 · {s} 秒 · {mb} MB",
+    uploading:"读取视频…", queued:"排队中", loading_model:"加载模型（每次启动只一次）",
+    step_plan:"计划", step_read:"解码", step_model:"模型", step_depth:"深度", step_size:"尺寸", step_wrote:"写出", step_warn:"提醒", step_vram:"显存", step_quality:"画质", step_metrics:"指标", step_npz:"npz", step_note:"注",
+    done:"完成", chips:{frames:"帧",fps:"fps",size:"尺寸",speed:"ms/帧",device:"设备",model:"模型看到",vram:"显存峰值",file:"文件"},
+    download:"下载深度图", openFolder:"保存在", next_title:"下一步",
+    next_seedance:"到 Seedance 把这个文件当「参考视频」上传，提示词开头写：",
+    next_seedance_p:"参考@视频1的动作与运镜，顺序与视频保持一致。\n（接着写你的人物、服装、场景和画风）",
+    next_h3:"在 MiniMax H3 里把它挂成 &lt;Video 1&gt;（定妆图挂 &lt;Picture 1&gt;），提示词里定义它并说明灰色外观不要抄：",
+    next_h3_p:"<Subject 3> is the fight choreography and camera movement shown in <Video 1>, a grey depth map in which near objects are white and far objects are black: (用一句话写清灰片里发生了什么)\n<Subject 3>: attribute_transfer - every action, position, timing and camera move of <Video 1> is transferred onto <Subject 1>; its grey depth look is not transferred.",
+    next_wan:"在 ComfyUI 里接到 WanVaceToVideo 的 control_video。", next_none:"交给任何认深度视频的模型。",
+    copy:"复制提示词", copied:"已复制 ✓", err_title:"没成功",
+    "info.device":"本机：{d}",
+  },
+  en: {
+    brand:"Maosika", "hdr.maosika":"Make AI short drama at Maosika ↗",
+    "intro.h1":"Copy the shot, not the actors.",
+    "intro.p":"Turn a reference video into a depth-map video, give it to Seedance or MiniMax H3 as the reference, and it repeats the moves and camera with your own characters. Everything runs on this computer.",
+    "drop.big":"Drop a reference video, or click to choose","drop.sub":"mp4 / mov / webm · under 15 s works best","drop.hint":"Nothing is uploaded to any server",
+    "tag.src":"Reference","tag.depth":"Depth map","stage.change":"Change video","stage.sync":"Play both",
+    "opt.target":"For which model","opt.none":"Generic","opt.quality":"Quality","q.fast":"Fast (recommended)","q.full":"Full",
+    "adv.title":"Advanced","adv.maxSide":"Max output long side","adv.maxSideTip":"0 = source size. 320 recommended for MiniMax H3 reference videos.",
+    "adv.maxFrames":"Only the first N frames","adv.maxFramesTip":"For a quick test, e.g. 48.","adv.clip":"Clip both ends %","adv.clipTip":"0.5–1 when something at the lens crushes everything else to black.",
+    "adv.gammaTip":">1 darkens mid-tones, spreading the near range. Rarely needed.","adv.invert":"Invert: far = white (default near = white, what Seedance / H3 / ControlNets expect)",
+    cta:"Make depth map", "cta.running":"Working…", "cta.again":"Run again",
+    "foot.by":"Made by","foot.what":"AI short drama & short video production system","foot.comfy":"ComfyUI nodes",
+    t_seedance:"<b>Seedance 2.0 / 2.5 reference video</b>: 24 fps, sides ×16, ≤ 15 s. Prompt with “参考@视频1的动作与运镜”.",
+    t_h3:"<b>MiniMax H3</b>: 24 fps, sides ×32, ≤ 15 s. As a reference video (&lt;Video 1&gt;) it works best small — set max long side 320 in Advanced.",
+    t_wan:"<b>Wan 2.1 VACE</b>: 16 fps, sides ×16, as control_video. (Not verified end to end by us.)",
+    t_none:"<b>Generic</b>: keep the source fps, only make dimensions even. For anything that reads a depth video.",
+    q_fast:"The model sees <b>644×364</b> (16:9) / 364×644 (9:16). ~3 GB VRAM, fast. Enough for blocking and camera.",
+    q_full:"The model sees <b>924×518</b> / 518×924. ~11 GB VRAM, 2.5× slower, sharper fine silhouettes. For close-ups.",
+    lenWarn:"This clip is {s} s; {t} accepts reference videos ≤ {m} s — trim it first, or limit frames in Advanced.",
+    meta_fmt:"{w}×{h} · {fps} fps · {n} frames · {s} s · {mb} MB",
+    uploading:"Reading video…", queued:"Queued", loading_model:"Loading the model (once per session)",
+    step_plan:"plan", step_read:"decode", step_model:"model", step_depth:"depth", step_size:"size", step_wrote:"wrote", step_warn:"note", step_vram:"vram", step_quality:"quality", step_metrics:"metrics", step_npz:"npz", step_note:"note",
+    done:"Done", chips:{frames:"frames",fps:"fps",size:"size",speed:"ms/frame",device:"device",model:"model saw",vram:"VRAM peak",file:"file"},
+    download:"Download depth map", openFolder:"Saved in", next_title:"Next",
+    next_seedance:"Upload this file to Seedance as a reference video and start the prompt with:",
+    next_seedance_p:"参考@视频1的动作与运镜，顺序与视频保持一致。\n(then describe your people, wardrobe, set and look)",
+    next_h3:"In MiniMax H3 attach it as &lt;Video 1&gt; (character sheet as &lt;Picture 1&gt;); define it in the prompt and say the grey look is not to be copied:",
+    next_h3_p:"<Subject 3> is the fight choreography and camera movement shown in <Video 1>, a grey depth map in which near objects are white and far objects are black: (one sentence on what happens in the clip)\n<Subject 3>: attribute_transfer - every action, position, timing and camera move of <Video 1> is transferred onto <Subject 1>; its grey depth look is not transferred.",
+    next_wan:"Connect it to WanVaceToVideo → control_video in ComfyUI.", next_none:"Hand it to any model that reads a depth video.",
+    copy:"Copy prompt", copied:"Copied ✓", err_title:"That didn't work",
+    "info.device":"This machine: {d}",
+  }
+};
+let lang = (localStorage.getItem("reshot.lang") || (navigator.language || "zh").toLowerCase().startsWith("zh") ? "zh" : "en");
+if (localStorage.getItem("reshot.lang")) lang = localStorage.getItem("reshot.lang");
+const t = (k, vars) => { let s = (I18N[lang][k] ?? I18N.zh[k] ?? k); if (typeof s === "string" && vars) for (const [a,b] of Object.entries(vars)) s = s.replaceAll(`{${a}}`, b); return s; };
+const $ = id => document.getElementById(id);
+
+const state = { source:null, target:"seedance", quality:"fast", job:null, info:null, poll:null };
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  $("lang").textContent = lang === "zh" ? "EN" : "中文";
+  document.title = lang === "zh" ? "ReShot · 猫斯卡" : "ReShot · Maosika";
+  renderNotes(); renderMeta(); renderRunBtn();
+  if (state.job && state.job.status === "done") renderResult(state.job);
+}
+$("lang").onclick = () => { lang = lang === "zh" ? "en" : "zh"; localStorage.setItem("reshot.lang", lang); applyLang(); };
+
+function renderNotes() {
+  $("targetNote").innerHTML = t("t_" + state.target);
+  $("qualityNote").innerHTML = t("q_" + state.quality);
+  const info = state.info, tg = info && info.targets[state.target];
+  const w = $("lenWarn");
+  if (state.source && tg && tg.max_seconds && state.source.seconds > tg.max_seconds + 0.05 && !$("maxFrames").value) {
+    w.textContent = t("lenWarn", { s: state.source.seconds, t: ({seedance:"Seedance",h3:"MiniMax H3",wan:"Wan"})[state.target] || state.target, m: tg.max_seconds });
+    w.hidden = false;
+  } else w.hidden = true;
+}
+function seg(id, key) {
+  $(id).querySelectorAll("button").forEach(b => b.onclick = () => {
+    $(id).querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+    state[key] = b.dataset.v;
+    if (key === "target" && b.dataset.v === "h3" && !$("maxSide").value) $("maxSide").placeholder = "320";
+    renderNotes();
+  });
+}
+seg("target", "target"); seg("quality", "quality");
+$("maxFrames").addEventListener("input", renderNotes);
+
+// ---- source ----
+const drop = $("drop"), file = $("file");
+drop.onclick = () => file.click();
+drop.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); file.click(); } };
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("is-over"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("is-over"); }));
+drop.addEventListener("drop", e => { const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) upload(f); });
+file.onchange = () => { if (file.files[0]) upload(file.files[0]); file.value = ""; };
+$("changeBtn").onclick = () => resetSource();
+document.addEventListener("dragover", e => e.preventDefault());
+document.addEventListener("drop", e => { e.preventDefault(); if (!drop.hidden) return; const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) upload(f); });
+
+async function upload(f) {
+  hideErr(); clearResult();
+  drop.querySelector(".big").textContent = t("uploading");
+  const fd = new FormData(); fd.append("file", f, f.name);
+  try {
+    const r = await fetch("/api/upload", { method: "POST", body: fd });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.statusText);
+    state.source = j;
+    $("srcVideo").src = j.url; $("srcVideo").play().catch(()=>{});
+    drop.hidden = true; $("players").hidden = false; $("meta").hidden = false; $("stageFoot").hidden = false;
+    $("players").classList.toggle("portrait", j.height > j.width);
+    renderMeta(); renderNotes(); renderRunBtn();
+  } catch (e) { showErr(e.message); drop.querySelector(".big").textContent = t("drop.big"); }
+}
+function resetSource() {
+  state.source = null; clearResult(); hideErr();
+  $("srcVideo").removeAttribute("src"); $("srcVideo").load();
+  drop.hidden = false; $("players").hidden = true; $("meta").hidden = true; $("stageFoot").hidden = true;
+  drop.querySelector(".big").textContent = t("drop.big");
+  renderNotes(); renderRunBtn();
+}
+function renderMeta() {
+  const s = state.source; if (!s) return;
+  $("meta").innerHTML = `<span class="name"><b>${esc(s.name)}</b></span><span>${t("meta_fmt",{w:s.width,h:s.height,fps:s.fps,n:s.frames,s:s.seconds,mb:(s.bytes/1048576).toFixed(1)})}</span>`;
+}
+function renderRunBtn() {
+  const b = $("run"), running = state.job && (state.job.status === "queued" || state.job.status === "running");
+  b.disabled = !state.source || !!running;
+  b.textContent = running ? t("cta.running") : (state.job && state.job.status === "done" ? t("cta.again") : t("cta"));
+}
+
+// ---- run ----
+$("run").onclick = async () => {
+  if (!state.source) return;
+  hideErr(); clearResult();
+  const body = {
+    source_id: state.source.id, target: state.target, quality: state.quality,
+    max_side: +$("maxSide").value || 0, max_frames: +$("maxFrames").value || 0,
+    clip_percent: +$("clip").value || 0, gamma: +$("gamma").value || 1, invert: $("invert").checked,
+  };
+  try {
+    const r = await fetch("/api/jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || r.statusText);
+    state.job = { id: j.id, status: "queued", steps: [] };
+    renderRunBtn(); renderProg(state.job);
+    clearInterval(state.poll); state.poll = setInterval(poll, 500); poll();
+  } catch (e) { showErr(e.message); }
+};
+async function poll() {
+  if (!state.job) return;
+  const r = await fetch("/api/jobs/" + state.job.id); if (!r.ok) return;
+  const j = await r.json(); state.job = j; renderProg(j);
+  if (j.status === "done") { clearInterval(state.poll); renderResult(j); renderRunBtn(); }
+  else if (j.status === "error") { clearInterval(state.poll); $("prog").hidden = true; showErr(j.error); renderRunBtn(); }
+}
+function renderProg(j) {
+  const p = $("prog"); p.hidden = false;
+  const rows = j.steps.map(s => `<div class="row${s.tag === "warn" ? " warn-row" : ""}"><span class="t">+${s.t}s</span><span class="k">${t("step_" + s.tag)}</span><span>${esc(s.message)}</span></div>`);
+  const head = j.status === "queued" ? `<div class="row"><span class="spin"></span>${t("queued")}</div>`
+             : j.status === "running" ? `<div class="row"><span class="spin"></span>${lang === "zh" ? "处理中" : "Working"} · ${j.elapsed}s</div>` : "";
+  p.innerHTML = head + rows.join("");
+}
+function renderResult(j) {
+  const r = j.result; if (!r) return;
+  $("prog").hidden = true;
+  $("outVideo").src = r.output_url + "?t=" + Date.now(); $("outPlayer").hidden = false; $("players").classList.add("two"); $("syncBtn").hidden = false;
+  const c = t("chips"), chips = [
+    [c.frames, r.frames], [c.fps, r.fps], [c.size, `${r.width}×${r.height}`], [c.speed, r.ms_per_frame], [c.device, `${r.device} ${r.precision}`],
+    r.model_input_resolution ? [c.model, r.model_input_resolution.join("×")] : null,
+    r.gpu_peak_reserved_bytes ? [c.vram, (r.gpu_peak_reserved_bytes / 2**30).toFixed(1) + " GB"] : null,
+    r.output_bytes ? [c.file, (r.output_bytes / 1048576).toFixed(2) + " MB"] : null,
+  ].filter(Boolean).map(([k, v]) => `<span class="chip">${k} <b>${v}</b></span>`).join("");
+  const nextKey = "next_" + j.target, prompt = I18N[lang][nextKey + "_p"];
+  $("result").innerHTML = `
+    <h4>${t("done")} · ${j.elapsed}s</h4>
+    <div class="chips">${chips}</div>
+    <div class="btns"><a class="btn primary" href="${r.output_url}?download=1" download>${t("download")}</a></div>
+    <div class="path">${t("openFolder")} ${esc(r.output)}</div>
+    <div class="next"><b>${t("next_title")}</b> · ${t(nextKey)}${prompt ? `<code id="promptText">${esc(prompt)}</code><div class="btns" style="margin-top:8px"><button class="btn" id="copyBtn" type="button">${t("copy")}</button></div>` : ""}</div>`;
+  $("result").hidden = false;
+  const cb = $("copyBtn"); if (cb) cb.onclick = async () => { await navigator.clipboard.writeText(prompt); cb.textContent = t("copied"); setTimeout(() => cb.textContent = t("copy"), 1600); };
+  $("srcVideo").currentTime = 0; $("outVideo").currentTime = 0;
+}
+$("syncBtn").onclick = () => { const a = $("srcVideo"), b = $("outVideo"); a.currentTime = 0; b.currentTime = 0; a.play(); b.play(); };
+function clearResult() { $("result").hidden = true; $("outPlayer").hidden = true; $("players").classList.remove("two"); $("syncBtn").hidden = true; $("prog").hidden = true; clearInterval(state.poll); if (state.job && state.job.status === "done") state.job = null; }
+function showErr(m) { $("err").textContent = `${t("err_title")}: ${m}`; $("err").hidden = false; }
+function hideErr() { $("err").hidden = true; }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]); }
+
+// ---- boot ----
+fetch("/api/info").then(r => r.json()).then(i => { state.info = i; $("ver").textContent = `ReShot ${i.version}`; renderNotes(); }).catch(()=>{});
+applyLang();
+})();
+</script>
+</body>
+</html>

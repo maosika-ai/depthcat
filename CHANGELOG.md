@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 — 2026-09-12
+- **Web page.** `reshot` with no arguments (or `reshot web`) starts a local UI in the browser:
+  drop a clip, pick the target model and quality, run, preview reference and depth side by
+  side, download, copy the prompt line for Seedance / MiniMax H3. Studio Air look (the
+  Maosika design system), Chinese and English. Standard library only — no new dependencies;
+  listens on 127.0.0.1; results in `~/ReShot`. Verified in Chrome with the real model.
+
 ## 0.3.8 — 2026-09-12
 - Fix: on Apple Silicon with torch ≥ 2.14 the model failed to load with
   `invalid low watermark ratio 1.4` — the MPS low watermark is now set alongside the high one.

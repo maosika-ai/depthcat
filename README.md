@@ -57,6 +57,15 @@ on a short clip with --metrics and show me the numbers. Don't say it's done unti
 
 ### 2. Make the depth map
 
+**Easiest — the web page.** Type `reshot` with nothing after it: a page opens in your browser (everything stays on your computer). Drop the clip in, pick which model it is for, click **Make depth map**. You get the reference and the depth map side by side, the numbers, a download button, and the prompt line to paste into Seedance or MiniMax H3.
+
+```bash
+reshot                     # opens http://127.0.0.1:8765 — results land in ~/ReShot
+reshot web --port 9000 --out ./depth --no-browser     # options, if you want them
+```
+
+**Or the command line**, for scripts and folders:
+
 ```bash
 reshot reference.mp4 -o depth.mp4 --target seedance
 ```
@@ -128,6 +137,8 @@ Things we learned making the demo:
 |---|---|---|---|---|
 | `fast` (default) | 644×364 · 364×644 · 490×364 | ~3 GB | 34 ms/frame on a 3080 Ti | large shapes identical to full; a loose strand of hair merges into the cheek |
 | `full` | 924×518 · 518×924 · 686×518 | ~11 GB | 83 ms/frame on a 3080 Ti | sharper fine silhouettes |
+
+The web page has the same two choices under **Quality**; the command line takes `--quality`.
 
 We recommend `fast`: for copying blocking and camera it is all a video model needs — the demo takes were made from a depth map shrunk to 320×176 before it even reached MiniMax H3, far below either setting. Measured full against fast on the same 294-frame clip: mean difference 5.3 of 255 grey levels, 95 % of pixels within 15, edge energy −4.5 %. Use `full` for close-ups where thin silhouettes matter and you have the VRAM. The run prints the exact resolution it uses (`model  fast: the model sees 644x364`) and records it in `--metrics`. Experts can set any short side with `--input-size`.
 
