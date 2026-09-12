@@ -6,7 +6,7 @@ colorTo: yellow
 sdk: static
 pinned: false
 license: apache-2.0
-short_description: Copy the shot, not the actors. Video → depth blockout. By Maosika 猫斯卡.
+short_description: Copy the shot, not the actors. By Maosika 猫斯卡.
 ---
 
 # ReShot
