@@ -2,8 +2,8 @@
 <p align="center"><b>Copy the shot, not the actors.</b></p>
 <p align="center"><sub>Open-source depth-map tool from <a href="https://www.maosika.com">Maosika 猫斯卡</a>, the AI short-drama production system.</sub></p>
 
-<p align="center"><img src="docs/demo.gif" width="720" alt="a fight scene, its depth map, and a new fight generated from it"></p>
-<p align="center"><sub>A fight scene. Its depth map. A new take — different fighters, same choreography, same camera.</sub></p>
+<p align="center"><img src="docs/demo.gif" width="720" alt="a fight scene, its depth map, and three new takes generated from it"></p>
+<p align="center"><sub>A fight scene. Its depth map. Three new takes — different fighters (one of them a bear), same choreography, same camera. <a href="docs/demo.mp4">Full-resolution clip</a>.</sub></p>
 
 <p align="center"><a href="README.zh-CN.md">中文</a> · <a href="docs/USAGE.md">User guide</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="CHANGELOG.md">Changelog</a></p>
 <p align="center">

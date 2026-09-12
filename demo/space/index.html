@@ -12,7 +12,7 @@
   main{max-width:820px;margin:0 auto;padding:48px 24px 80px}
   h1{font-size:44px;letter-spacing:-.02em;margin:0 0 8px}h1 span{color:var(--acc)}
   .tag{font-size:20px;color:var(--muted);margin:0 0 28px}
-  img.demo{width:100%;border-radius:14px;border:1px solid var(--line);display:block}
+  img.demo,video.demo{width:100%;border-radius:14px;border:1px solid var(--line);display:block}
   .cap{font-size:13px;color:var(--muted);text-align:center;margin:8px 0 32px}
   pre{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow:auto;font-size:14px}
   code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
@@ -32,8 +32,8 @@
 <p class="tag"><b>Copy the shot, not the actors.</b> Turn a reference video into a depth map your video model can follow — same staging, same camera, your cast, your style.<br><span class="zh"><b>复制走位，不复制演员。</b>把参考视频抽成视频模型能跟着走的深度图——走位一样、镜头一样，人是你的，画风是你的。</span></p>
 <p class="zh"><sub>Open-sourced by <a href="https://www.maosika.com">Maosika 猫斯卡</a>, the AI short-drama production system · 由 AI 短剧生产系统 <a href="https://www.maosika.com">猫斯卡</a> 开源</sub></p>
 
-<img class="demo" src="demo.gif" alt="left: reference video, right: ReShot depth map">
-<p class="cap">left: reference · right: ReShot depth map — near is white, far is black, every frame in step with the last</p>
+<video class="demo" src="demo.mp4" poster="demo.gif" autoplay muted loop playsinline></video>
+<p class="cap">top: reference · its ReShot depth map (near is white, far is black) · bottom: three takes generated from that depth map — different fighters, same choreography, same camera</p>
 
 <pre><code>pip install git+https://github.com/maosika-ai/reshot
 reshot reference.mp4 -o depth.mp4 --target seedance</code></pre>

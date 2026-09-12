@@ -2,8 +2,8 @@
 <p align="center"><b>复制走位，不复制演员。</b></p>
 <p align="center"><sub>由 AI 短剧生产系统 <a href="https://www.maosika.com">猫斯卡</a> 开源的深度图工具。</sub></p>
 
-<p align="center"><img src="docs/demo.gif" width="720" alt="一段武打参考片、它的深度图、用深度图生成的新武打片"></p>
-<p align="center"><sub>一段武打。它的深度图。一段新片——换了人，招式和镜头一模一样。</sub></p>
+<p align="center"><img src="docs/demo.gif" width="720" alt="一段武打参考片、它的深度图、用深度图生成的三段新武打片"></p>
+<p align="center"><sub>一段武打。它的深度图。三段新片——换了人（其中一段换成了熊），招式和镜头一模一样。<a href="docs/demo.mp4">高清原片</a>。</sub></p>
 
 <p align="center"><a href="README.md">English</a> · <a href="docs/USAGE.zh-CN.md">使用手册</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="CHANGELOG.md">更新日志</a></p>
 <p align="center">
