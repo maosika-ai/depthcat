@@ -129,7 +129,7 @@ Things we learned making the demo:
 |---|---|---|
 | **NVIDIA, 8 GB or more** (RTX 3070, 4060, 4090 …) | Yes | default `--quality fast`: 3 GB VRAM, 34 ms/frame on a 3080 Ti |
 | **NVIDIA, 12 GB or more** | Yes, and `--quality full` fits too | full: 11 GB VRAM, 83 ms/frame on a 3080 Ti, 62 ms/frame on a 4090 |
-| **Apple Silicon** | Yes, slower | M2 Max: ~500 ms/frame, a 12 s clip in about 2.5 min |
+| **Apple Silicon** | Yes | default `fast`: M2 Max 46 ms/frame, a 12 s clip in about 18 s |
 | **CPU only** | Yes, slow | ~1.8 s/frame |
 | **Host RAM** | 16 GB covers clips up to ~27 s at 720p | peak = 2 GB + 224 MB per second of 720p; the tool refuses before starting if a clip won't fit |
 

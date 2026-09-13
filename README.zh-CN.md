@@ -129,7 +129,7 @@ is transferred onto <Subject 1> and <Subject 2>; its grey depth look is not tran
 |---|---|---|
 | **N 卡 8 GB 及以上**（RTX 3070、4060、4090……） | 能 | 默认 `--quality fast`：显存 3 GB、3080 Ti 上 34 ms/帧 |
 | **N 卡 12 GB 及以上** | 能，`--quality full` 也放得下 | full：显存 11 GB、3080 Ti 上 83 ms/帧、4090 上 62 ms/帧 |
-| **Apple 芯片** | 能，慢 | M2 Max 约 500 ms/帧，12 秒的片约 2.5 分钟 |
+| **Apple 芯片** | 能 | 默认 `fast`：M2 Max 上 46 ms/帧，12 秒的片约 18 秒 |
 | **纯 CPU** | 能，很慢 | 约 1.8 秒/帧 |
 | **内存** | 16 GB 能跑 720p 约 27 秒 | 峰值 = 2 GB + 每秒 720p 约 224 MB；放不下会在开始之前拒绝 |
 
