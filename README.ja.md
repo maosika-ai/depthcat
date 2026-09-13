@@ -8,7 +8,7 @@
 
 <p align="center"><sub>上：参照動画とその深度マップ。下：その深度マップから生成された3つのテイク — 2人の女性と1匹のウサギ。同じ動き、同じカメラ。 <a href="docs/demo-fight.mp4">フル解像度クリップ</a>。</sub></p>
 
-<p align="center"><a href="README.zh-CN.md">中文</a> · <a href="docs/USAGE.md">ユーザーガイド</a> · <a href="https://github.com/maosika-ai/ComfyUI-ReShot">ComfyUI ノード</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="https://github.com/maosika-ai/reshot/discussions">コミュニティ</a> · <a href="CHANGELOG.md">変更履歴</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.zh-CN.md">中文</a> · <a href="docs/USAGE.md">ユーザーガイド</a> · <a href="https://github.com/maosika-ai/ComfyUI-ReShot">ComfyUI ノード</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="https://github.com/maosika-ai/reshot/discussions">コミュニティ</a> · <a href="CHANGELOG.md">変更履歴</a></p>
 
 <p align="center">
 
