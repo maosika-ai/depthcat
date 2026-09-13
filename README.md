@@ -5,7 +5,7 @@
 <p align="center"><img src="docs/demo-fight.gif" width="720" alt="a fight scene, its depth map, and three new takes generated from it"></p>
 <p align="center"><sub>Top: the reference and its depth map. Bottom: three takes generated from that depth map — two women, one rabbit. Same moves, same camera. <a href="docs/demo-fight.mp4">Full-resolution clip</a>.</sub></p>
 
-<p align="center"><a href="README.zh-CN.md">中文</a> · <a href="docs/USAGE.md">User guide</a> · <a href="https://github.com/maosika-ai/ComfyUI-ReShot">ComfyUI nodes</a> · <a href="https://huggingface.co/spaces/netbee/reshot">Try it online</a> · <a href="https://github.com/maosika-ai/reshot/discussions">Community</a> · <a href="CHANGELOG.md">Changelog</a></p>
+<p align="center"><a href="README.zh-CN.md">中文</a> · <a href="docs/USAGE.md">User guide</a> · <a href="https://github.com/maosika-ai/ComfyUI-ReShot">ComfyUI nodes</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="https://github.com/maosika-ai/reshot/discussions">Community</a> · <a href="CHANGELOG.md">Changelog</a></p>
 <p align="center">
 <a href="https://github.com/maosika-ai/reshot/actions/workflows/ci.yml"><img src="https://github.com/maosika-ai/reshot/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="Apache-2.0"></a>
@@ -37,7 +37,7 @@ The three takes in the demo were made exactly this way. Every file involved is i
 
 ### 1. Install
 
-**No install:** [try it in the browser](https://huggingface.co/spaces/netbee/reshot) on a free GPU — clips up to 15 s, about 30 seconds each.
+**No install:** [open the notebook in Colab](https://colab.research.google.com/github/maosika-ai/reshot/blob/main/examples/reshot_colab.ipynb) — a free GPU, upload a clip, download `depth.mp4`. <a href="https://colab.research.google.com/github/maosika-ai/reshot/blob/main/examples/reshot_colab.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"></a>
 
 ```bash
 pip install reshot        # needs ffmpeg on PATH

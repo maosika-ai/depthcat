@@ -1,11 +1,12 @@
 # Changelog
 
 ## 0.4.1 — 2026-09-14
-- **Hugging Face Space that runs.** [huggingface.co/spaces/netbee/reshot](https://huggingface.co/spaces/netbee/reshot)
-  on ZeroGPU: drop a clip up to 15 s, pick the target model, get `depth.mp4` and the prompt line
-  back — no install. Source in `demo/space/`.
-- `run(cfg, backend=...)` accepts a pre-built backend, so a resident process (the Space, a server)
-  loads the weights once instead of per clip. Without it nothing changes.
+- **Colab notebook.** `examples/reshot_colab.ipynb` — a free GPU, upload a clip, download
+  `depth.mp4`, no install. "Open in Colab" badge in both READMEs.
+- `run(cfg, backend=...)` accepts a pre-built backend, so a resident process (a server, a
+  Space) loads the weights once instead of per clip. Without it nothing changes.
+- `demo/space/`: a ZeroGPU Gradio app, ready for a Hugging Face account with billing enabled
+  (Gradio Spaces are no longer free to host). `demo/landing/`: the static Space.
 - Discussions are open; the README has a Community section.
 
 ## 0.4.0 — 2026-09-12
