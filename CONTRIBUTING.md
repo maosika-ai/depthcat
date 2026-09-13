@@ -33,3 +33,7 @@ CI runs the same on Ubuntu and Windows, plus the model smoke on CPU.
 
 Include: OS, GPU/CPU, `python -c "import torch;print(torch.__version__)"`, the exact command,
 and the stderr output with `-v`. If a clip reproduces it and you can share it, link it.
+
+## Where to talk
+
+Questions and results go to [Discussions](https://github.com/maosika-ai/reshot/discussions); bugs go to issues. If you want to take on something larger than a good-first-issue (pose output, a new backend), open a thread in Ideas first so we can agree on the shape before you build.

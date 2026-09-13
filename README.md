@@ -5,7 +5,7 @@
 <p align="center"><img src="docs/demo-fight.gif" width="720" alt="a fight scene, its depth map, and three new takes generated from it"></p>
 <p align="center"><sub>Top: the reference and its depth map. Bottom: three takes generated from that depth map — two women, one rabbit. Same moves, same camera. <a href="docs/demo-fight.mp4">Full-resolution clip</a>.</sub></p>
 
-<p align="center"><a href="README.zh-CN.md">中文</a> · <a href="docs/USAGE.md">User guide</a> · <a href="https://github.com/maosika-ai/ComfyUI-ReShot">ComfyUI nodes</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="CHANGELOG.md">Changelog</a></p>
+<p align="center"><a href="README.zh-CN.md">中文</a> · <a href="docs/USAGE.md">User guide</a> · <a href="https://github.com/maosika-ai/ComfyUI-ReShot">ComfyUI nodes</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="https://github.com/maosika-ai/reshot/discussions">Community</a> · <a href="CHANGELOG.md">Changelog</a></p>
 <p align="center">
 <a href="https://github.com/maosika-ai/reshot/actions/workflows/ci.yml"><img src="https://github.com/maosika-ai/reshot/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="Apache-2.0"></a>
@@ -173,6 +173,13 @@ Three details make the output something a video model will actually follow:
 - **Cropped, never padded.** Frame size is trimmed to the model's grid. A black border would read as a far wall.
 
 The model is Video Depth Anything Small (ByteDance, CVPR 2025). It works on overlapping 32-frame windows and aligns them, so depth doesn't jitter between frames. A 12-second 720p clip peaks at 3.9 GB of host RAM and 11 GB of VRAM (3 GB with `--input-size 364`) (measured; the estimate the tool shows before starting is a fitted line, within 0.05 GB of measurements) and it refuses up front if a clip won't fit. A `fake` backend runs the whole pipeline without a model for your own tests. Errors that are yours to fix are `ReshotError` subclasses with an exit code and a concrete fix in the message.
+
+## Community
+
+- **Made something?** Post the reference, the depth map, the take and your prompt line in [Show and tell](https://github.com/maosika-ai/reshot/discussions/2). The best ones get linked here.
+- **The model didn't follow the depth map?** Ask in [Q&A](https://github.com/maosika-ai/reshot/discussions/categories/q-a) with one frame and the prompt — it is usually the prompt.
+- **Something broke?** [Open an issue](https://github.com/maosika-ai/reshot/issues/new/choose). We answer within a day.
+- **Want to help?** Start with a [good first issue](https://github.com/maosika-ai/reshot/labels/good%20first%20issue): a preset for another model, a Colab notebook, a README in your language. Pose output is the big one — see [#6](https://github.com/maosika-ai/reshot/issues/6).
 
 ## License
 

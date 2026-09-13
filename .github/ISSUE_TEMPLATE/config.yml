@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: The video model didn't follow my depth map
+    url: https://github.com/maosika-ai/reshot/discussions/categories/q-a
+    about: Usually the prompt, not the depth map. Post a frame and the prompt in Q&A and we'll look.
+  - name: Show what you made
+    url: https://github.com/maosika-ai/reshot/discussions/2
+    about: Reference, depth map, take, prompt line — the best ones get linked from the README.
+  - name: Ask for a preset or a new output
+    url: https://github.com/maosika-ai/reshot/discussions/categories/ideas
+    about: Another video model, pose or edge output, a new platform — say which and why.

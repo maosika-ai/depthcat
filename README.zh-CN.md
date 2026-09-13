@@ -5,7 +5,7 @@
 <p align="center"><img src="docs/demo-fight.gif" width="720" alt="一段武打参考片、它的深度图、用深度图生成的三段新武打片"></p>
 <p align="center"><sub>上排：参考片和它的深度图。下排：用这张深度图生成的三段片——两个女人、一只兔子。动作一样，镜头一样。<a href="docs/demo-fight.mp4">高清原片</a>。</sub></p>
 
-<p align="center"><a href="README.md">English</a> · <a href="docs/USAGE.zh-CN.md">使用手册</a> · <a href="https://github.com/maosika-ai/ComfyUI-ReShot">ComfyUI 节点</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="CHANGELOG.md">更新日志</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="docs/USAGE.zh-CN.md">使用手册</a> · <a href="https://github.com/maosika-ai/ComfyUI-ReShot">ComfyUI 节点</a> · <a href="https://huggingface.co/spaces/maosika/reshot">Hugging Face</a> · <a href="https://github.com/maosika-ai/reshot/discussions">社区</a> · <a href="CHANGELOG.md">更新日志</a></p>
 <p align="center">
 <a href="https://github.com/maosika-ai/reshot/actions/workflows/ci.yml"><img src="https://github.com/maosika-ai/reshot/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="Apache-2.0"></a>
@@ -173,6 +173,13 @@ run(RunConfig(input=Path("参考片.mp4"), output=Path("深度图.mp4"), target=
 - **只裁不补。** 尺寸裁到模型要的网格上，绝不补黑边——黑边会被当成远处的墙。
 
 模型是 Video Depth Anything Small（字节跳动，CVPR 2025），以 32 帧为一个窗口重叠推理并对齐，深度不会一帧一帧地跳。12 秒 720p 一段片峰值占 3.9 GB 内存、11 GB 显存（`--input-size 364` 时 3 GB）（实测；开跑前显示的估算是拟合出来的直线，与实测误差 0.05 GB 以内），放不下会在开始之前拒绝。`fake` 后端不加载模型就能跑完整条流水线，方便你写测试。属于「用户该修」的错误都是 `ReshotError` 的子类，带退出码和具体的修法。
+
+## 社区
+
+- **做出片了？** 把参考片、深度图、成片和你的提示词那一行发到 [作品分享](https://github.com/maosika-ai/reshot/discussions/2)，好的会链到这里。
+- **模型没照深度图走？** 到 [问答区](https://github.com/maosika-ai/reshot/discussions/categories/q-a) 贴一帧画面和提示词——多半是提示词的事。
+- **出错了？** [提 issue](https://github.com/maosika-ai/reshot/issues/new/choose)，一天内回复。
+- **想搭把手？** 从 [good first issue](https://github.com/maosika-ai/reshot/labels/good%20first%20issue) 开始：给别的模型加预设、写个 Colab、翻译 README。骨骼输出是最大的一件，见 [#6](https://github.com/maosika-ai/reshot/issues/6)。
 
 ## 协议
 
