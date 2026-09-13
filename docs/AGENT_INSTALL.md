@@ -39,9 +39,12 @@ Prefer a virtual environment (`python3 -m venv .venv && source .venv/bin/activat
 ## 3. Install ReShot
 
 ```bash
-pip install "reshot[ffmpeg]"      # or just: pip install reshot   (when ffmpeg is on PATH)
-reshot --version                   # prints e.g. "reshot 0.3.7"
+pip install "reshot[ffmpeg,pose]"  # pose = ONNX Runtime for --control pose; or just: pip install reshot
+reshot --version                   # prints e.g. "reshot 0.5.0"
 ```
+
+On a machine with an NVIDIA card, `pip install onnxruntime-gpu` (instead of the `pose` extra) makes
+the skeleton output run on the GPU too; the CPU build works everywhere and is fine for short clips.
 
 Verify torch sees the GPU:
 
@@ -64,14 +67,18 @@ Offline machine: fetch `video_depth_anything_vits.pth` from
 `https://huggingface.co/depth-anything/Video-Depth-Anything-Small` elsewhere and pass
 `--checkpoint /path/to/video_depth_anything_vits.pth`.
 
+`--control pose` downloads two more files on its first run (`yolox_l.onnx`, `dw-ll_ucoco_384.onnx`,
+~340 MB together, from `https://huggingface.co/yzd-v/DWPose`); offline, put both in one folder and
+pass `--checkpoint-dir /that/folder`.
+
 ## 5. Smoke test without the model (seconds, no download)
 
 ```bash
-RESHOT_FAKE_BACKEND=1 reshot <any short .mp4> -o /tmp/reshot_smoke.mp4 --max-frames 8 --target seedance
+RESHOT_FAKE_BACKEND=1 reshot <any short .mp4> -o /tmp/reshot_smoke/ --max-frames 8 --target seedance --control depth,pose,canny
 ```
 
 (Windows PowerShell: `$env:RESHOT_FAKE_BACKEND=1; reshot …`.) This exercises decoding, presets and
-encoding with a fake depth model. It must print a `wrote` line. If it fails, the problem is ffmpeg
+encoding with fake depth and pose models (canny needs none). It must print three `wrote` lines. If it fails, the problem is ffmpeg
 or the input file, not the model.
 
 ## 6. Real run
@@ -90,6 +97,17 @@ Defaults are right for almost everyone: `--quality fast` (the model works at 644
 ~3 GB VRAM). Only suggest `--quality full` (924×518, ~11 GB VRAM) if the card has ≥ 12 GB and the
 user cares about fine silhouettes.
 
+If the user's clip is a dance or a fight, also make the skeleton version — it is what pose
+ControlNets want and it is the more precise of the two for limbs:
+
+```bash
+reshot reference.mp4 -o pose.mp4 --target h3 --control pose --keypoints pose.json --metrics pose_run.json
+```
+
+`pose.mp4` must show coloured stick figures on black that follow the people; `people_per_frame_max`
+in the metrics says how many it found. If it is 0 for a clip with people, the detector never fired —
+report it as a bug with the clip's resolution and fps.
+
 ## 7. What to tell the user at the end
 
 - The exact command that worked on their machine, ready to reuse.
@@ -97,6 +115,8 @@ user cares about fine silhouettes.
   prompt like `参考@视频1的动作与运镜，顺序与视频保持一致。` + their own description of people and look —
   or attach it as `<Video 1>` for MiniMax H3 (see the README's step 3 for the prompt lines that matter).
 - For MiniMax H3 reference videos add `--target h3 --max-res 320`.
+- `--control pose` (skeleton) and `--control canny` (lines) exist too; `--control depth,pose -o out/`
+  writes both in one go.
 - Batch: `reshot clips/*.mp4 -o depth/ --target seedance` runs a folder on one model load.
 - ComfyUI users: install the node pack https://github.com/maosika-ai/ComfyUI-ReShot instead of the CLI.
 

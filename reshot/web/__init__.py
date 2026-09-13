@@ -9,13 +9,15 @@ API
     POST /api/upload            multipart "file"  → source info (id, size, fps, frames, seconds)
     GET  /api/source/<id>       the uploaded clip, for the preview player
     POST /api/jobs              JSON options      → {"id"}; runs in the single worker thread
+                                ``control`` picks depth (default) / pose / canny
     GET  /api/jobs/<id>         status, progress steps, result / error
-    GET  /api/output/<id>       the depth video (``?download=1`` for an attachment)
-    GET  /api/info              version, device, VRAM, output folder
+    GET  /api/output/<id>       the control video (``?download=1`` for an attachment)
+    GET  /api/keypoints/<id>    the pose JSON of a pose job (``?download=1`` likewise)
+    GET  /api/info              version, device, VRAM, output folder, which controls can run
 
-Why one worker thread with a cached model: the depth model is loaded once per server
-process (3–6 s) and every job reuses it; two jobs at once would fight for the GPU, so they
-queue. Why polling instead of SSE: 500 ms polls are plenty for a 20-second job and keep
+Why one worker thread with cached models: a model is loaded once per server process
+(3–6 s for depth, ~1 s for pose) and every job of that control reuses it; two jobs at once
+would fight for the GPU, so they queue. Why polling instead of SSE: 500 ms polls are plenty for a 20-second job and keep
 the server a plain ``http.server``.
 """
 
@@ -40,7 +42,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from .._version import __version__
-from ..config import RunConfig
+from ..config import CONTROLS, RunConfig
 from ..errors import ReshotError
 from ..io import probe_video
 from ..pipeline import _cuda_total_bytes, _make_backend, _run_one
@@ -76,6 +78,7 @@ class _Job:
             "id": self.id,
             "status": self.status,
             "source_name": self.source_name,
+            "control": self.cfg.control,
             "target": self.cfg.target,
             "quality": self.cfg.quality,
             "steps": self.steps,
@@ -94,10 +97,14 @@ class _State:
         self.sources: dict[str, dict] = {}
         self.jobs: dict[str, _Job] = {}
         self.queue: queue.Queue[_Job] = queue.Queue()
-        self.backend = None
-        self.backend_name = ""
+        self.backends: dict[str, tuple] = {}  # control → (backend, name); each loaded once
         self.lock = threading.Lock()
         self.device = "?"
+
+    @property
+    def backend(self):
+        """The depth backend, if loaded (kept for callers that predate pose / canny)."""
+        return self.backends.get("depth", (None, ""))[0]
 
     def worker(self) -> None:
         while True:
@@ -105,14 +112,20 @@ class _State:
             job.status = "running"
             job.started = time.time()
             try:
-                if self.backend is None:
-                    job.step("model", "loading the depth model (once per session)")
-                    self.backend, self.backend_name = _make_backend(job.cfg)
-                    self.device = self.backend.device
-                res = _run_one(job.cfg, job, self.backend, self.backend_name)
+                control = job.cfg.control
+                if control not in self.backends:
+                    if control != "canny":
+                        job.step("model", f"loading the {control} model (once per session)")
+                    self.backends[control] = _make_backend(job.cfg)
+                    if self.backends[control][0] is not None:
+                        self.device = self.backends[control][0].device
+                backend, backend_name = self.backends[control]
+                res = _run_one(job.cfg, job, backend, backend_name)
                 job.result = {
+                    "control": control,
                     "output": str(res.output),
                     "output_url": f"/api/output/{job.id}",
+                    "keypoints_url": f"/api/keypoints/{job.id}" if job.cfg.keypoints else None,
                     "frames": res.frames,
                     "fps": res.fps,
                     "width": res.width,
@@ -125,6 +138,7 @@ class _State:
                     "model_input_resolution": res.metrics.get("model_input_resolution"),
                     "gpu_peak_reserved_bytes": res.metrics.get("gpu_peak_reserved_bytes"),
                     "output_bytes": res.metrics.get("output_bytes"),
+                    "people_per_frame_max": res.metrics.get("people_per_frame_max"),
                 }
                 job.status = "done"
             except ReshotError as exc:
@@ -137,6 +151,15 @@ class _State:
             finally:
                 job.finished = time.time()
                 self.queue.task_done()
+
+
+def _onnxruntime_installed() -> bool:
+    try:
+        import onnxruntime  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
 
 
 def _safe_stem(name: str) -> str:
@@ -223,6 +246,12 @@ class _Handler(BaseHTTPRequestHandler):
                     return self._json({"error": "no output yet"}, HTTPStatus.NOT_FOUND)
                 q = parse_qs(url.query)
                 self._file(Path(job.result["output"]), Path(job.result["output"]).name if q.get("download") else None)
+            elif parts[:2] == ["api", "keypoints"] and len(parts) == 3:
+                job = self.state.jobs.get(parts[2])
+                if not job or not job.result or not job.cfg.keypoints or not Path(job.cfg.keypoints).exists():
+                    return self._json({"error": "no keypoints for this job"}, HTTPStatus.NOT_FOUND)
+                q = parse_qs(url.query)
+                self._file(Path(job.cfg.keypoints), Path(job.cfg.keypoints).name if q.get("download") else None)
             else:
                 self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
         except (BrokenPipeError, ConnectionResetError):
@@ -247,7 +276,10 @@ class _Handler(BaseHTTPRequestHandler):
             "targets": {
                 k: {"fps": v.fps, "multiple": v.multiple, "max_seconds": v.max_seconds} for k, v in TARGETS.items()
             },
+            "controls": list(CONTROLS),
+            "pose_available": _onnxruntime_installed(),
             "model_loaded": st.backend is not None,
+            "models_loaded": sorted(st.backends),
         }
 
     def _upload(self) -> None:
@@ -303,17 +335,25 @@ class _Handler(BaseHTTPRequestHandler):
         if not src:
             return self._json({"error": "upload a video first"}, HTTPStatus.BAD_REQUEST)
         target = str(body.get("target", "seedance"))
+        control = str(body.get("control", "depth"))
+        if control == "pose" and not _onnxruntime_installed():
+            return self._json(
+                {"error": 'pose needs ONNX Runtime: pip install "reshot[pose]", then restart reshot'},
+                HTTPStatus.BAD_REQUEST,
+            )
         stem = _safe_stem(src["name"])
-        out = self.state.out_dir / f"{stem}_depth_{target}.mp4"
+        out = self.state.out_dir / f"{stem}_{control}_{target}.mp4"
         n = 2
         while out.exists():  # never overwrite an earlier result
-            out = self.state.out_dir / f"{stem}_depth_{target}_{n}.mp4"
+            out = self.state.out_dir / f"{stem}_{control}_{target}_{n}.mp4"
             n += 1
         try:
+            canny = body.get("canny") or [100, 200]
             cfg = RunConfig(
                 input=Path(src["path"]),
                 output=out,
                 target=target,
+                control=control,
                 quality=str(body.get("quality", "fast")),
                 max_res=int(body.get("max_side") or 1280) if body.get("max_side") else 1280,
                 max_frames=int(body["max_frames"]) if body.get("max_frames") else None,
@@ -322,8 +362,14 @@ class _Handler(BaseHTTPRequestHandler):
                 gamma=float(body.get("gamma", 1.0) or 1.0),
                 metrics=out.with_suffix(".json"),
                 force=bool(body.get("force", False)),
+                pose_hands=bool(body.get("pose_hands", True)),
+                pose_face=bool(body.get("pose_face", False)),
+                pose_smooth=bool(body.get("pose_smooth", True)),
+                keypoints=out.with_name(out.stem + ".keypoints.json") if control == "pose" else None,
+                canny_low=int(canny[0]),
+                canny_high=int(canny[1]),
             )
-        except (ReshotError, ValueError) as exc:
+        except (ReshotError, ValueError, TypeError, IndexError) as exc:
             return self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
         job = _Job(cfg, src["name"])
         self.state.jobs[job.id] = job

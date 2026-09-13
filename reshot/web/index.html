@@ -149,7 +149,7 @@ footer a{color:var(--text-2)}footer a:hover{color:var(--accent-bright)}
 <main class="wrap">
   <div class="intro">
     <h1 data-i18n="intro.h1">复制走位，不复制演员。</h1>
-    <p data-i18n="intro.p">把一段参考视频变成深度图视频，交给 Seedance 或 MiniMax H3 当参考，它就会照着这段的动作和运镜再拍一遍——人物换成你的。所有处理都在这台电脑上完成。</p>
+    <p data-i18n="intro.p">把一段参考视频变成深度图、骨架或线稿视频，交给 Seedance 或 MiniMax H3 当参考，它就会照着这段的动作和运镜再拍一遍——人物换成你的。所有处理都在这台电脑上完成。</p>
   </div>
 
   <section class="card">
@@ -164,7 +164,7 @@ footer a{color:var(--text-2)}footer a:hover{color:var(--accent-bright)}
       </div>
       <div class="players" id="players" hidden>
         <div class="player" id="srcPlayer"><span class="tag" data-i18n="tag.src">参考片</span><video id="srcVideo" controls muted loop playsinline></video></div>
-        <div class="player" id="outPlayer" hidden><span class="tag depth" data-i18n="tag.depth">深度图</span><video id="outVideo" controls muted loop playsinline></video></div>
+        <div class="player" id="outPlayer" hidden><span class="tag depth" id="outTag">深度图</span><video id="outVideo" controls muted loop playsinline></video></div>
       </div>
       <div class="meta" id="meta" hidden></div>
       <div class="stage-foot" id="stageFoot" hidden>
@@ -175,6 +175,17 @@ footer a{color:var(--text-2)}footer a:hover{color:var(--accent-bright)}
 
     <!-- right: options -->
     <div class="opts">
+      <div class="opt">
+        <h3 data-i18n="opt.control">出什么</h3>
+        <div class="seg" id="control">
+          <button type="button" data-v="depth" class="on" data-i18n="c.depth">深度图</button>
+          <button type="button" data-v="pose" data-i18n="c.pose">骨架</button>
+          <button type="button" data-v="canny" data-i18n="c.canny">线稿</button>
+        </div>
+        <div class="note" id="controlNote"></div>
+        <div class="warn" id="poseWarn" hidden></div>
+      </div>
+
       <div class="opt">
         <h3 data-i18n="opt.target">给谁用</h3>
         <div class="seg" id="target">
@@ -187,7 +198,7 @@ footer a{color:var(--text-2)}footer a:hover{color:var(--accent-bright)}
         <div class="warn" id="lenWarn" hidden></div>
       </div>
 
-      <div class="opt">
+      <div class="opt" id="qualityOpt">
         <h3 data-i18n="opt.quality">画质</h3>
         <div class="seg" id="quality">
           <button type="button" data-v="fast" class="on" data-i18n="q.fast">快速（推荐）</button>
@@ -201,9 +212,14 @@ footer a{color:var(--text-2)}footer a:hover{color:var(--accent-bright)}
         <div class="adv-body">
           <div class="field"><label for="maxSide" data-i18n="adv.maxSide">输出长边上限</label><input type="number" id="maxSide" min="0" step="2" placeholder="0"><div class="tip" data-i18n="adv.maxSideTip">0 = 原片尺寸。给 MiniMax H3 当参考视频建议 320。</div></div>
           <div class="field"><label for="maxFrames" data-i18n="adv.maxFrames">只处理前 N 帧</label><input type="number" id="maxFrames" min="1" step="1" placeholder="全部"><div class="tip" data-i18n="adv.maxFramesTip">试效果时用，比如 48。</div></div>
-          <div class="field"><label for="clip" data-i18n="adv.clip">裁掉两端 %</label><input type="number" id="clip" min="0" max="10" step="0.1" value="0"><div class="tip" data-i18n="adv.clipTip">有东西贴着镜头把其他全压黑时用 0.5–1。</div></div>
-          <div class="field"><label for="gamma">Gamma</label><input type="number" id="gamma" min="0.2" max="3" step="0.05" value="1"><div class="tip" data-i18n="adv.gammaTip">&gt;1 压暗中间调，把近处拉开。一般不动。</div></div>
-          <label class="check"><input type="checkbox" id="invert"><span data-i18n="adv.invert">反转：远白近黑（默认近白远黑，Seedance / H3 / ControlNet 都要这个）</span></label>
+          <div class="field" data-for="depth"><label for="clip" data-i18n="adv.clip">裁掉两端 %</label><input type="number" id="clip" min="0" max="10" step="0.1" value="0"><div class="tip" data-i18n="adv.clipTip">有东西贴着镜头把其他全压黑时用 0.5–1。</div></div>
+          <div class="field" data-for="depth"><label for="gamma">Gamma</label><input type="number" id="gamma" min="0.2" max="3" step="0.05" value="1"><div class="tip" data-i18n="adv.gammaTip">&gt;1 压暗中间调，把近处拉开。一般不动。</div></div>
+          <label class="check" data-for="depth"><input type="checkbox" id="invert"><span data-i18n="adv.invert">反转：远白近黑（默认近白远黑，Seedance / H3 / ControlNet 都要这个）</span></label>
+          <label class="check" data-for="pose"><input type="checkbox" id="poseHands" checked><span data-i18n="adv.poseHands">画手（21 点，抓握与手势靠它）</span></label>
+          <label class="check" data-for="pose"><input type="checkbox" id="poseFace"><span data-i18n="adv.poseFace">画脸（68 点；默认不画——脸型会被带过去）</span></label>
+          <label class="check" data-for="pose"><input type="checkbox" id="poseSmooth" checked><span data-i18n="adv.poseSmooth">跨帧稳定：跟踪 + 平滑 + 关节迟滞（关掉 = 逐帧原始结果）</span></label>
+          <div class="field" data-for="canny"><label for="cannyLow" data-i18n="adv.cannyLow">线稿低阈值</label><input type="number" id="cannyLow" min="0" max="1000" step="10" value="100"><div class="tip" data-i18n="adv.cannyLowTip">越低线越多。</div></div>
+          <div class="field" data-for="canny"><label for="cannyHigh" data-i18n="adv.cannyHigh">线稿高阈值</label><input type="number" id="cannyHigh" min="0" max="1000" step="10" value="200"><div class="tip" data-i18n="adv.cannyHighTip">越高只留强边。默认 100 / 200。</div></div>
         </div>
       </details>
 
@@ -211,7 +227,7 @@ footer a{color:var(--text-2)}footer a:hover{color:var(--accent-bright)}
       <div class="err" id="err" hidden></div>
       <div class="result" id="result" hidden></div>
 
-      <button class="cta" id="run" type="button" disabled data-i18n="cta">生成深度图</button>
+      <button class="cta" id="run" type="button" disabled>生成深度图</button>
     </div>
   </section>
 
@@ -230,14 +246,21 @@ const I18N = {
   zh: {
     brand:"猫斯卡", "hdr.maosika":"去猫斯卡做 AI 短剧 ↗",
     "intro.h1":"复制走位，不复制演员。",
-    "intro.p":"把一段参考视频变成深度图视频，交给 Seedance 或 MiniMax H3 当参考，它就会照着这段的动作和运镜再拍一遍——人物换成你的。所有处理都在这台电脑上完成。",
+    "intro.p":"把一段参考视频变成深度图、骨架或线稿视频，交给 Seedance 或 MiniMax H3 当参考，它就会照着这段的动作和运镜再拍一遍——人物换成你的。所有处理都在这台电脑上完成。",
     "drop.big":"拖入参考视频，或点击选择","drop.sub":"mp4 / mov / webm · 15 秒以内效果最好","drop.hint":"视频不会上传到任何服务器",
-    "tag.src":"参考片","tag.depth":"深度图","stage.change":"换一段视频","stage.sync":"同步播放",
+    "tag.src":"参考片","tag.depth":"深度图","tag.pose":"骨架","tag.canny":"线稿","stage.change":"换一段视频","stage.sync":"同步播放",
+    "opt.control":"出什么","c.depth":"深度图","c.pose":"骨架","c.canny":"线稿",
+    c_depth:"<b>深度图</b>：近白远黑的灰片。带走站位、体量、动作、运镜；扔掉脸、衣服、光。默认选它。",
+    c_pose:"<b>骨架</b>：黑底彩色火柴人（OpenPose 画法，DWPose 估计，含手、不画脸）。跳舞、武打这类靠肢体的最准；MiniMax H3 ControlNet 的 pose 口直接收。第一次用会下载两个模型文件（约 340 MB）。",
+    c_canny:"<b>线稿</b>：黑底白线的边缘图，不用模型、秒出。注意它会把衣服轮廓和脸型带过去——「只复制走位」对线稿只成立一半。",
+    poseWarn:"骨架需要 ONNX Runtime：在终端里执行 <code>pip install \"reshot[pose]\"</code>，然后重启 reshot。",
     "opt.target":"给谁用","opt.none":"通用","opt.quality":"画质","q.fast":"快速（推荐）","q.full":"完整",
     "adv.title":"高级选项","adv.maxSide":"输出长边上限","adv.maxSideTip":"0 = 原片尺寸。给 MiniMax H3 当参考视频建议 320。",
     "adv.maxFrames":"只处理前 N 帧","adv.maxFramesTip":"试效果时用，比如 48。","adv.clip":"裁掉两端 %","adv.clipTip":"有东西贴着镜头把其他全压黑时用 0.5–1。",
     "adv.gammaTip":">1 压暗中间调，把近处拉开。一般不动。","adv.invert":"反转：远白近黑（默认近白远黑，Seedance / H3 / ControlNet 都要这个）",
-    cta:"生成深度图", "cta.running":"生成中…", "cta.again":"再生成一次",
+    "adv.poseHands":"画手（21 点，抓握与手势靠它）","adv.poseFace":"画脸（68 点；默认不画——脸型会被带过去）","adv.poseSmooth":"跨帧稳定：跟踪 + 平滑 + 关节迟滞（关掉 = 逐帧原始结果）",
+    "adv.cannyLow":"线稿低阈值","adv.cannyLowTip":"越低线越多。","adv.cannyHigh":"线稿高阈值","adv.cannyHighTip":"越高只留强边。默认 100 / 200。",
+    cta_depth:"生成深度图", cta_pose:"生成骨架", cta_canny:"生成线稿", "cta.running":"生成中…", "cta.again":"再生成一次",
     "foot.by":"出品","foot.what":"AI 短剧 / AI 短视频自动生产系统","foot.comfy":"ComfyUI 节点",
     t_seedance:"<b>Seedance 2.0 / 2.5 参考视频</b>：24 fps，宽高 16 的倍数，≤ 15 秒。上传后提示词写「参考@视频1的动作与运镜」。",
     t_h3:"<b>MiniMax H3</b>：24 fps，宽高 32 的倍数，≤ 15 秒。当参考视频挂 &lt;Video 1&gt; 时，高级选项里把长边限到 320 效果最好。",
@@ -248,28 +271,39 @@ const I18N = {
     lenWarn:"这段 {s} 秒，{t} 只收 ≤ {m} 秒的参考视频——先剪短，或在高级选项里限制帧数。",
     meta_fmt:"{w}×{h} · {fps} fps · {n} 帧 · {s} 秒 · {mb} MB",
     uploading:"读取视频…", queued:"排队中", loading_model:"加载模型（每次启动只一次）",
-    step_plan:"计划", step_read:"解码", step_model:"模型", step_depth:"深度", step_size:"尺寸", step_wrote:"写出", step_warn:"提醒", step_vram:"显存", step_quality:"画质", step_metrics:"指标", step_npz:"npz", step_note:"注",
-    done:"完成", chips:{frames:"帧",fps:"fps",size:"尺寸",speed:"ms/帧",device:"设备",model:"模型看到",vram:"显存峰值",file:"文件"},
-    download:"下载深度图", openFolder:"保存在", next_title:"下一步",
+    step_plan:"计划", step_read:"解码", step_model:"模型", step_depth:"深度", step_pose:"骨架", step_render:"绘制", step_canny:"线稿", step_keypoints:"关键点", step_size:"尺寸", step_wrote:"写出", step_warn:"提醒", step_vram:"显存", step_quality:"画质", step_metrics:"指标", step_npz:"npz", step_note:"注",
+    done:"完成", chips:{frames:"帧",fps:"fps",size:"尺寸",speed:"ms/帧",device:"设备",model:"模型看到",vram:"显存峰值",file:"文件",people:"最多同框"},
+    download_depth:"下载深度图", download_pose:"下载骨架视频", download_canny:"下载线稿", download_kp:"下载关键点 JSON", openFolder:"保存在", next_title:"下一步",
     next_seedance:"到 Seedance 把这个文件当「参考视频」上传，提示词开头写：",
-    next_seedance_p:"参考@视频1的动作与运镜，顺序与视频保持一致。\n（接着写你的人物、服装、场景和画风）",
-    next_h3:"在 MiniMax H3 里把它挂成 &lt;Video 1&gt;（定妆图挂 &lt;Picture 1&gt;），提示词里定义它并说明灰色外观不要抄：",
-    next_h3_p:"<Subject 3> is the fight choreography and camera movement shown in <Video 1>, a grey depth map in which near objects are white and far objects are black: (用一句话写清灰片里发生了什么)\n<Subject 3>: attribute_transfer - every action, position, timing and camera move of <Video 1> is transferred onto <Subject 1>; its grey depth look is not transferred.",
-    next_wan:"在 ComfyUI 里接到 WanVaceToVideo 的 control_video。", next_none:"交给任何认深度视频的模型。",
+    next_seedance_p_depth:"参考@视频1的动作与运镜，顺序与视频保持一致。\n（接着写你的人物、服装、场景和画风）",
+    next_seedance_p_pose:"参考@视频1里火柴人的动作与运镜，顺序与视频保持一致；只取动作和机位，画面里不要出现骨架线条。\n（接着写你的人物、服装、场景和画风）",
+    next_seedance_p_canny:"参考@视频1的构图、动作与运镜，顺序与视频保持一致；只取构图和动作，不要画成线稿。\n（接着写你的人物、服装、场景和画风）",
+    next_h3:"在 MiniMax H3 里把它挂成 &lt;Video 1&gt;（定妆图挂 &lt;Picture 1&gt;），提示词里定义它并说明它的外观不要抄：",
+    next_h3_p_depth:"<Subject 3> is the fight choreography and camera movement shown in <Video 1>, a grey depth map in which near objects are white and far objects are black: (用一句话写清灰片里发生了什么)\n<Subject 3>: attribute_transfer - every action, position, timing and camera move of <Video 1> is transferred onto <Subject 1>; its grey depth look is not transferred.",
+    next_h3_p_pose:"<Subject 3> is the choreography and camera movement shown in <Video 1>, an OpenPose skeleton video — coloured stick figures on black, one per person: (用一句话写清火柴人在做什么)\n<Subject 3>: attribute_transfer - every pose, action, position, timing and camera move of <Video 1> is transferred onto <Subject 1>; the stick-figure look is not transferred.",
+    next_h3_p_canny:"<Subject 3> is the composition, action and camera movement shown in <Video 1>, a white-line edge drawing on black: (用一句话写清线稿里发生了什么)\n<Subject 3>: attribute_transfer - the composition, every action, timing and camera move of <Video 1> are transferred onto <Subject 1>; the line-drawing look is not transferred.",
+    next_wan:"在 ComfyUI 里接到 WanVaceToVideo 的 control_video。", next_none_depth:"交给任何认深度视频的模型。", next_none_pose:"交给任何认 OpenPose 骨架视频的模型（ControlNet pose / VACE）。", next_none_canny:"交给任何认 canny 线稿视频的模型。",
     copy:"复制提示词", copied:"已复制 ✓", err_title:"没成功",
     "info.device":"本机：{d}",
   },
   en: {
     brand:"Maosika", "hdr.maosika":"Make AI short drama at Maosika ↗",
     "intro.h1":"Copy the shot, not the actors.",
-    "intro.p":"Turn a reference video into a depth-map video, give it to Seedance or MiniMax H3 as the reference, and it repeats the moves and camera with your own characters. Everything runs on this computer.",
+    "intro.p":"Turn a reference video into a depth-map, skeleton or line video, give it to Seedance or MiniMax H3 as the reference, and it repeats the moves and camera with your own characters. Everything runs on this computer.",
     "drop.big":"Drop a reference video, or click to choose","drop.sub":"mp4 / mov / webm · under 15 s works best","drop.hint":"Nothing is uploaded to any server",
-    "tag.src":"Reference","tag.depth":"Depth map","stage.change":"Change video","stage.sync":"Play both",
+    "tag.src":"Reference","tag.depth":"Depth map","tag.pose":"Skeleton","tag.canny":"Lines","stage.change":"Change video","stage.sync":"Play both",
+    "opt.control":"What to make","c.depth":"Depth map","c.pose":"Skeleton","c.canny":"Lines",
+    c_depth:"<b>Depth map</b>: grey, near = white. Keeps blocking, scale, moves and camera; drops faces, clothes and light. The default.",
+    c_pose:"<b>Skeleton</b>: coloured stick figures on black (OpenPose style, estimated by DWPose, hands yes, face no). Most precise for dance and fights; MiniMax H3 ControlNet takes it on its pose input. The first run downloads two model files (~340 MB).",
+    c_canny:"<b>Lines</b>: white edges on black — no model, instant. It does carry the outline of clothes and a face: “copy the shot, not the actors” is only half true here.",
+    poseWarn:"Skeletons need ONNX Runtime: run <code>pip install \"reshot[pose]\"</code> in a terminal, then restart reshot.",
     "opt.target":"For which model","opt.none":"Generic","opt.quality":"Quality","q.fast":"Fast (recommended)","q.full":"Full",
     "adv.title":"Advanced","adv.maxSide":"Max output long side","adv.maxSideTip":"0 = source size. 320 recommended for MiniMax H3 reference videos.",
     "adv.maxFrames":"Only the first N frames","adv.maxFramesTip":"For a quick test, e.g. 48.","adv.clip":"Clip both ends %","adv.clipTip":"0.5–1 when something at the lens crushes everything else to black.",
     "adv.gammaTip":">1 darkens mid-tones, spreading the near range. Rarely needed.","adv.invert":"Invert: far = white (default near = white, what Seedance / H3 / ControlNets expect)",
-    cta:"Make depth map", "cta.running":"Working…", "cta.again":"Run again",
+    "adv.poseHands":"Draw hands (21 points — grips and gestures)","adv.poseFace":"Draw the face (68 points; off by default — it carries the face shape)","adv.poseSmooth":"Stabilise over time: tracking + smoothing + joint hysteresis (off = raw per-frame output)",
+    "adv.cannyLow":"Lines: low threshold","adv.cannyLowTip":"Lower = more lines.","adv.cannyHigh":"Lines: high threshold","adv.cannyHighTip":"Higher = only strong edges. Default 100 / 200.",
+    cta_depth:"Make depth map", cta_pose:"Make skeleton", cta_canny:"Make lines", "cta.running":"Working…", "cta.again":"Run again",
     "foot.by":"Made by","foot.what":"AI short drama & short video production system","foot.comfy":"ComfyUI nodes",
     t_seedance:"<b>Seedance 2.0 / 2.5 reference video</b>: 24 fps, sides ×16, ≤ 15 s. Prompt with “参考@视频1的动作与运镜”.",
     t_h3:"<b>MiniMax H3</b>: 24 fps, sides ×32, ≤ 15 s. As a reference video (&lt;Video 1&gt;) it works best small — set max long side 320 in Advanced.",
@@ -280,14 +314,18 @@ const I18N = {
     lenWarn:"This clip is {s} s; {t} accepts reference videos ≤ {m} s — trim it first, or limit frames in Advanced.",
     meta_fmt:"{w}×{h} · {fps} fps · {n} frames · {s} s · {mb} MB",
     uploading:"Reading video…", queued:"Queued", loading_model:"Loading the model (once per session)",
-    step_plan:"plan", step_read:"decode", step_model:"model", step_depth:"depth", step_size:"size", step_wrote:"wrote", step_warn:"note", step_vram:"vram", step_quality:"quality", step_metrics:"metrics", step_npz:"npz", step_note:"note",
-    done:"Done", chips:{frames:"frames",fps:"fps",size:"size",speed:"ms/frame",device:"device",model:"model saw",vram:"VRAM peak",file:"file"},
-    download:"Download depth map", openFolder:"Saved in", next_title:"Next",
+    step_plan:"plan", step_read:"decode", step_model:"model", step_depth:"depth", step_pose:"pose", step_render:"render", step_canny:"canny", step_keypoints:"keypoints", step_size:"size", step_wrote:"wrote", step_warn:"note", step_vram:"vram", step_quality:"quality", step_metrics:"metrics", step_npz:"npz", step_note:"note",
+    done:"Done", chips:{frames:"frames",fps:"fps",size:"size",speed:"ms/frame",device:"device",model:"model saw",vram:"VRAM peak",file:"file",people:"most people in a frame"},
+    download_depth:"Download depth map", download_pose:"Download skeleton video", download_canny:"Download lines", download_kp:"Download keypoints JSON", openFolder:"Saved in", next_title:"Next",
     next_seedance:"Upload this file to Seedance as a reference video and start the prompt with:",
-    next_seedance_p:"参考@视频1的动作与运镜，顺序与视频保持一致。\n(then describe your people, wardrobe, set and look)",
-    next_h3:"In MiniMax H3 attach it as &lt;Video 1&gt; (character sheet as &lt;Picture 1&gt;); define it in the prompt and say the grey look is not to be copied:",
-    next_h3_p:"<Subject 3> is the fight choreography and camera movement shown in <Video 1>, a grey depth map in which near objects are white and far objects are black: (one sentence on what happens in the clip)\n<Subject 3>: attribute_transfer - every action, position, timing and camera move of <Video 1> is transferred onto <Subject 1>; its grey depth look is not transferred.",
-    next_wan:"Connect it to WanVaceToVideo → control_video in ComfyUI.", next_none:"Hand it to any model that reads a depth video.",
+    next_seedance_p_depth:"参考@视频1的动作与运镜，顺序与视频保持一致。\n(then describe your people, wardrobe, set and look)",
+    next_seedance_p_pose:"参考@视频1里火柴人的动作与运镜，顺序与视频保持一致；只取动作和机位，画面里不要出现骨架线条。\n(then describe your people, wardrobe, set and look)",
+    next_seedance_p_canny:"参考@视频1的构图、动作与运镜，顺序与视频保持一致；只取构图和动作，不要画成线稿。\n(then describe your people, wardrobe, set and look)",
+    next_h3:"In MiniMax H3 attach it as &lt;Video 1&gt; (character sheet as &lt;Picture 1&gt;); define it in the prompt and say its look is not to be copied:",
+    next_h3_p_depth:"<Subject 3> is the fight choreography and camera movement shown in <Video 1>, a grey depth map in which near objects are white and far objects are black: (one sentence on what happens in the clip)\n<Subject 3>: attribute_transfer - every action, position, timing and camera move of <Video 1> is transferred onto <Subject 1>; its grey depth look is not transferred.",
+    next_h3_p_pose:"<Subject 3> is the choreography and camera movement shown in <Video 1>, an OpenPose skeleton video — coloured stick figures on black, one per person: (one sentence on what the figures do)\n<Subject 3>: attribute_transfer - every pose, action, position, timing and camera move of <Video 1> is transferred onto <Subject 1>; the stick-figure look is not transferred.",
+    next_h3_p_canny:"<Subject 3> is the composition, action and camera movement shown in <Video 1>, a white-line edge drawing on black: (one sentence on what happens in the clip)\n<Subject 3>: attribute_transfer - the composition, every action, timing and camera move of <Video 1> are transferred onto <Subject 1>; the line-drawing look is not transferred.",
+    next_wan:"Connect it to WanVaceToVideo → control_video in ComfyUI.", next_none_depth:"Hand it to any model that reads a depth video.", next_none_pose:"Hand it to any model that reads an OpenPose skeleton video (ControlNet pose / VACE).", next_none_canny:"Hand it to any model that reads a canny line video.",
     copy:"Copy prompt", copied:"Copied ✓", err_title:"That didn't work",
     "info.device":"This machine: {d}",
   }
@@ -297,7 +335,7 @@ if (localStorage.getItem("reshot.lang")) lang = localStorage.getItem("reshot.lan
 const t = (k, vars) => { let s = (I18N[lang][k] ?? I18N.zh[k] ?? k); if (typeof s === "string" && vars) for (const [a,b] of Object.entries(vars)) s = s.replaceAll(`{${a}}`, b); return s; };
 const $ = id => document.getElementById(id);
 
-const state = { source:null, target:"seedance", quality:"fast", job:null, info:null, poll:null };
+const state = { source:null, control:"depth", target:"seedance", quality:"fast", job:null, info:null, poll:null };
 
 function applyLang() {
   document.documentElement.lang = lang;
@@ -310,8 +348,14 @@ function applyLang() {
 $("lang").onclick = () => { lang = lang === "zh" ? "en" : "zh"; localStorage.setItem("reshot.lang", lang); applyLang(); };
 
 function renderNotes() {
+  $("controlNote").innerHTML = t("c_" + state.control);
   $("targetNote").innerHTML = t("t_" + state.target);
   $("qualityNote").innerHTML = t("q_" + state.quality);
+  // quality is a depth-model setting; each advanced field belongs to one control type
+  $("qualityOpt").hidden = state.control !== "depth";
+  document.querySelectorAll("[data-for]").forEach(el => { el.hidden = el.dataset.for !== state.control; });
+  const pw = $("poseWarn"), noPose = state.control === "pose" && state.info && state.info.pose_available === false;
+  pw.innerHTML = t("poseWarn"); pw.hidden = !noPose;
   const info = state.info, tg = info && info.targets[state.target];
   const w = $("lenWarn");
   if (state.source && tg && tg.max_seconds && state.source.seconds > tg.max_seconds + 0.05 && !$("maxFrames").value) {
@@ -324,10 +368,10 @@ function seg(id, key) {
     $(id).querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
     state[key] = b.dataset.v;
     if (key === "target" && b.dataset.v === "h3" && !$("maxSide").value) $("maxSide").placeholder = "320";
-    renderNotes();
+    renderNotes(); renderRunBtn();  // the button's label and enabled state follow the control type
   });
 }
-seg("target", "target"); seg("quality", "quality");
+seg("control", "control"); seg("target", "target"); seg("quality", "quality");
 $("maxFrames").addEventListener("input", renderNotes);
 
 // ---- source ----
@@ -370,8 +414,9 @@ function renderMeta() {
 }
 function renderRunBtn() {
   const b = $("run"), running = state.job && (state.job.status === "queued" || state.job.status === "running");
-  b.disabled = !state.source || !!running;
-  b.textContent = running ? t("cta.running") : (state.job && state.job.status === "done" ? t("cta.again") : t("cta"));
+  const noPose = state.control === "pose" && state.info && state.info.pose_available === false;
+  b.disabled = !state.source || !!running || noPose;
+  b.textContent = running ? t("cta.running") : (state.job && state.job.status === "done" ? t("cta.again") : t("cta_" + state.control));
 }
 
 // ---- run ----
@@ -379,9 +424,11 @@ $("run").onclick = async () => {
   if (!state.source) return;
   hideErr(); clearResult();
   const body = {
-    source_id: state.source.id, target: state.target, quality: state.quality,
+    source_id: state.source.id, control: state.control, target: state.target, quality: state.quality,
     max_side: +$("maxSide").value || 0, max_frames: +$("maxFrames").value || 0,
     clip_percent: +$("clip").value || 0, gamma: +$("gamma").value || 1, invert: $("invert").checked,
+    pose_hands: $("poseHands").checked, pose_face: $("poseFace").checked, pose_smooth: $("poseSmooth").checked,
+    canny: [+$("cannyLow").value || 0, +$("cannyHigh").value || 0],
   };
   try {
     const r = await fetch("/api/jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -408,18 +455,24 @@ function renderProg(j) {
 function renderResult(j) {
   const r = j.result; if (!r) return;
   $("prog").hidden = true;
+  const control = j.control || r.control || "depth";
   $("outVideo").src = r.output_url + "?t=" + Date.now(); $("outPlayer").hidden = false; $("players").classList.add("two"); $("syncBtn").hidden = false;
+  $("outTag").textContent = t("tag." + control);
   const c = t("chips"), chips = [
-    [c.frames, r.frames], [c.fps, r.fps], [c.size, `${r.width}×${r.height}`], [c.speed, r.ms_per_frame], [c.device, `${r.device} ${r.precision}`],
+    [c.frames, r.frames], [c.fps, r.fps], [c.size, `${r.width}×${r.height}`], [c.speed, r.ms_per_frame], [c.device, control === "canny" ? r.device : `${r.device} ${r.precision}`],
     r.model_input_resolution ? [c.model, r.model_input_resolution.join("×")] : null,
+    r.people_per_frame_max != null ? [c.people, r.people_per_frame_max] : null,
     r.gpu_peak_reserved_bytes ? [c.vram, (r.gpu_peak_reserved_bytes / 2**30).toFixed(1) + " GB"] : null,
     r.output_bytes ? [c.file, (r.output_bytes / 1048576).toFixed(2) + " MB"] : null,
   ].filter(Boolean).map(([k, v]) => `<span class="chip">${k} <b>${v}</b></span>`).join("");
-  const nextKey = "next_" + j.target, prompt = I18N[lang][nextKey + "_p"];
+  // the "next step" text depends on the target; the prompt line on target × control
+  const nextKey = j.target === "none" || j.target === "wan" ? "next_" + j.target + (j.target === "none" ? "_" + control : "") : "next_" + j.target;
+  const prompt = I18N[lang]["next_" + j.target + "_p_" + control];
+  const kpBtn = r.keypoints_url ? `<a class="btn" href="${r.keypoints_url}?download=1" download>${t("download_kp")}</a>` : "";
   $("result").innerHTML = `
     <h4>${t("done")} · ${j.elapsed}s</h4>
     <div class="chips">${chips}</div>
-    <div class="btns"><a class="btn primary" href="${r.output_url}?download=1" download>${t("download")}</a></div>
+    <div class="btns"><a class="btn primary" href="${r.output_url}?download=1" download>${t("download_" + control)}</a>${kpBtn}</div>
     <div class="path">${t("openFolder")} ${esc(r.output)}</div>
     <div class="next"><b>${t("next_title")}</b> · ${t(nextKey)}${prompt ? `<code id="promptText">${esc(prompt)}</code><div class="btns" style="margin-top:8px"><button class="btn" id="copyBtn" type="button">${t("copy")}</button></div>` : ""}</div>`;
   $("result").hidden = false;

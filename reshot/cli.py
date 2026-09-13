@@ -2,6 +2,8 @@
 
     reshot in.mp4 -o out.mp4                 # Apache-2.0 Small model, auto device
     reshot in.mp4 -o out.mp4 --target h3     # 24 fps, ×32 dims, ≤15 s for MiniMax H3
+    reshot in.mp4 -o pose.mp4 --control pose # OpenPose-style skeleton video instead of depth
+    reshot in.mp4 -o out/ --control depth,pose,canny   # all three, out/<name>_<control>.mp4
     reshot in.mp4 -o out.mp4 --npz d.npz --metrics run.json
     reshot clips/*.mp4 -o depth/ --target seedance   # batch: one model load, out/<name>_depth.mp4
     reshot                                    # no arguments: local web UI, opens in the browser
@@ -23,8 +25,8 @@ import sys
 from pathlib import Path
 
 from ._version import __version__
-from .config import BACKENDS, MODEL_VARIANTS, QUALITIES, RunConfig
-from .errors import ReshotError
+from .config import BACKENDS, CONTROLS, MODEL_VARIANTS, QUALITIES, RunConfig
+from .errors import InputError, ReshotError
 from .pipeline import run, run_many
 from .reporter import StderrReporter
 from .targets import TARGETS
@@ -33,14 +35,42 @@ from .targets import TARGETS
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="reshot",
-        description="Video → depth-map video for video-generation ControlNets.",
+        description="Video → depth-map / skeleton / line video for video-generation ControlNets.",
         epilog="Docs: https://github.com/maosika-ai/reshot",
     )
     p.add_argument("input", type=Path, nargs="+", help="input video(s) (anything ffmpeg/OpenCV can read)")
     p.add_argument(
         "-o", "--output", type=Path, required=True, help="output .mp4, or a directory when there are several inputs"
     )
-    g = p.add_argument_group("model")
+    g = p.add_argument_group("control")
+    g.add_argument(
+        "--control",
+        default="depth",
+        metavar="KIND[,KIND]",
+        help="what to output: depth (default), pose (OpenPose-style skeletons via DWPose), canny (lines); "
+        "several at once with commas — then -o must be a directory",
+    )
+    g.add_argument("--no-hands", action="store_true", help="pose: body only, no 21-point hands")
+    g.add_argument("--face", action="store_true", help="pose: also draw the 68 face points (off by default)")
+    g.add_argument("--no-smooth", action="store_true", help="pose: raw per-frame output, no tracking / smoothing")
+    g.add_argument("--keypoints", type=Path, help="pose: also write the skeletons as JSON (reshot-pose/1)")
+    g.add_argument(
+        "--checkpoint-dir",
+        type=Path,
+        help="pose: folder with yolox_l.onnx + dw-ll_ucoco_384.onnx instead of the download",
+    )
+    g.add_argument(
+        "--pose-detect-every",
+        type=int,
+        default=3,
+        metavar="N",
+        help="pose: run the person detector every N frames and follow the skeletons in between "
+        "(cuts always re-detect); 1 = every frame, ~2.5x slower on CPU (default 3)",
+    )
+    g.add_argument(
+        "--canny", default="100,200", metavar="LOW,HIGH", help="canny: hysteresis thresholds (default 100,200)"
+    )
+    g = p.add_argument_group("depth model")
     g.add_argument(
         "--model",
         default="small",
@@ -93,10 +123,18 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _controls(args: argparse.Namespace) -> list[str]:
+    kinds = [k.strip() for k in str(args.control).split(",") if k.strip()]
+    for k in kinds:
+        if k not in CONTROLS:
+            raise InputError(f"unknown --control {k!r}; choose from {', '.join(CONTROLS)}")
+    return list(dict.fromkeys(kinds)) or ["depth"]
+
+
 def _is_batch(args: argparse.Namespace) -> bool:
-    """Several inputs, or an output that is (or is spelled like) a directory."""
+    """Several inputs or controls, or an output that is (or is spelled like) a directory."""
     o = args.output
-    return len(args.input) > 1 or o.is_dir() or str(o).endswith(("/", "\\"))
+    return len(args.input) > 1 or len(_controls(args)) > 1 or o.is_dir() or str(o).endswith(("/", "\\"))
 
 
 def configs_from_args(args: argparse.Namespace) -> list[RunConfig]:
@@ -108,33 +146,51 @@ def configs_from_args(args: argparse.Namespace) -> list[RunConfig]:
             return None
         return option / f"{stem}{ext}" if batch else option
 
+    try:
+        low, high = (int(x) for x in str(args.canny).split(","))
+    except ValueError as exc:
+        raise InputError("--canny must be LOW,HIGH, e.g. 100,200") from exc
+
     cfgs = []
     for src in args.input:
         stem = src.stem
-        cfgs.append(
-            RunConfig(
-                input=src,
-                output=args.output / f"{stem}_depth.mp4" if batch else args.output,
-                model=args.model,
-                backend=args.backend,
-                device=args.device,
-                target=args.target,
-                fps=args.fps,
-                max_res=args.max_res,
-                max_frames=args.max_frames,
-                quality=args.quality,
-                input_size=args.input_size,
-                invert=args.invert,
-                clip_percent=args.clip,
-                gamma=args.gamma,
-                crf=args.crf,
-                npz=per_clip(args.npz, stem, ".npz"),
-                metrics=per_clip(args.metrics, stem, ".json"),
-                checkpoint=args.checkpoint,
-                force=args.force,
-                cuda_memory_fraction=args.cuda_memory_fraction,
+        for control in _controls(args):
+            # several controls → several output files; the per-clip npz/metrics/keypoints
+            # names carry the control too so they do not overwrite each other
+            tag = f"{stem}_{control}" if len(_controls(args)) > 1 else stem
+            cfgs.append(
+                RunConfig(
+                    input=src,
+                    output=args.output / f"{stem}_{control}.mp4" if batch else args.output,
+                    model=args.model,
+                    backend=args.backend,
+                    device=args.device,
+                    target=args.target,
+                    control=control,
+                    fps=args.fps,
+                    max_res=args.max_res,
+                    max_frames=args.max_frames,
+                    quality=args.quality,
+                    input_size=args.input_size,
+                    invert=args.invert,
+                    clip_percent=args.clip,
+                    gamma=args.gamma,
+                    crf=args.crf,
+                    npz=per_clip(args.npz, tag, ".npz"),
+                    metrics=per_clip(args.metrics, tag, ".json"),
+                    checkpoint=args.checkpoint,
+                    force=args.force,
+                    cuda_memory_fraction=args.cuda_memory_fraction,
+                    pose_hands=not args.no_hands,
+                    pose_face=args.face,
+                    pose_smooth=not args.no_smooth,
+                    keypoints=per_clip(args.keypoints, tag, ".keypoints.json"),
+                    checkpoint_dir=args.checkpoint_dir,
+                    pose_detect_every=args.pose_detect_every,
+                    canny_low=low,
+                    canny_high=high,
+                )
             )
-        )
     return cfgs
 
 

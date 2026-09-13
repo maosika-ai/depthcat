@@ -1,12 +1,19 @@
-"""The pipeline: plan → read → depth → grey → encode. This is the only module that wires
-the steps together; the CLI and the Python API both call `run()`.
+"""The pipeline: plan → read → model → encode. This is the only module that wires the
+steps together; the CLI and the Python API both call `run()`.
 
     from reshot import RunConfig, run
     result = run(RunConfig(input=Path("in.mp4"), output=Path("out.mp4"), target="h3"))
+    result = run(RunConfig(input=Path("in.mp4"), output=Path("pose.mp4"), control="pose"))
+
+Three control types share the plan/read/encode stages and differ in the middle:
+
+    depth   frames → Video Depth Anything → float depth → whole-clip grey → grey video
+    pose    frames → DWPose (detect + estimate) → track/smooth → OpenPose render → RGB video
+    canny   frames → per-frame Canny → grey video          (no model at all)
 
 Design notes
 ------------
-* Inference always runs at the model's working resolution (short side `input_size`).
+* Depth inference always runs at the model's working resolution (short side `input_size`).
   The 8-bit result is scaled to the output size frame by frame during encoding, so a
   12 s 720p clip needs ~4 GB of host RAM instead of 8–20 GB (see planning.py).
 * Normalisation is computed once over the whole clip; per-frame normalisation makes
@@ -30,7 +37,7 @@ from ._version import __version__
 from .backends import get_backend, pick_device
 from .config import RunConfig
 from .errors import InputError, RamBudgetError, ReshotError
-from .io import probe_video, read_video, write_gray_video
+from .io import probe_video, read_video, write_gray_video, write_rgb_video
 from .planning import gib, memory_verdict, processing_max_res
 from .postprocess import to_gray, upsample_frames
 from .reporter import NullReporter, Reporter
@@ -105,14 +112,20 @@ def plan(cfg: RunConfig) -> Plan:
     # from a thumbnail. The three demo takes were made from full-resolution depth
     # downscaled afterwards, which is what this now does.
     cap = cfg.max_res if cfg.max_res > 0 else 10**9
-    proc_max_res = processing_max_res(src_w, src_h, _planning_input_size(cfg))
-    scale = min(1.0, proc_max_res / max(src_w, src_h))
-    proc_w, proc_h = (int(round(src_w * scale / 2) * 2), int(round(src_h * scale / 2) * 2))
-
     out_scale = min(1.0, cap / max(src_w, src_h))
     out_h, out_w = fit_dimensions(int(src_h * out_scale), int(src_w * out_scale), target.multiple)
 
-    verdict = memory_verdict(frames, proc_w, proc_h)
+    if cfg.control == "depth":
+        proc_max_res = processing_max_res(src_w, src_h, _planning_input_size(cfg))
+    else:
+        # Pose and canny have no "model resolution": the detector letterboxes to 640 on
+        # its own and canny is per pixel, so frames are read at the output size and every
+        # keypoint / edge lands exactly where it is drawn.
+        proc_max_res = max(out_w, out_h)
+    scale = min(1.0, proc_max_res / max(src_w, src_h))
+    proc_w, proc_h = (int(round(src_w * scale / 2) * 2), int(round(src_h * scale / 2) * 2))
+
+    verdict = memory_verdict(frames, proc_w, proc_h, control=cfg.control)
     return Plan(
         src_w,
         src_h,
@@ -131,10 +144,25 @@ def plan(cfg: RunConfig) -> Plan:
 
 
 def _make_backend(cfg: RunConfig):
-    """Build the depth backend a config asks for (the fake one when the env var is set)."""
-    backend_name = "fake" if os.environ.get("RESHOT_FAKE_BACKEND") else cfg.backend
-    if backend_name == "fake":
-        return get_backend("fake"), backend_name
+    """Build the backend a config's `control` asks for (a fake one when the env var is
+    set). Canny needs none and returns `(None, "none")`."""
+    fake = bool(os.environ.get("RESHOT_FAKE_BACKEND")) or cfg.backend == "fake"
+    if cfg.control == "canny":
+        return None, "none"
+    if cfg.control == "pose":
+        if fake:
+            return get_backend("fake-pose"), "fake-pose"
+        return (
+            get_backend(
+                "dwpose",
+                device=cfg.device,
+                checkpoint_dir=str(cfg.checkpoint_dir) if cfg.checkpoint_dir else None,
+                detect_every=cfg.pose_detect_every,
+            ),
+            "dwpose",
+        )
+    if fake:
+        return get_backend("fake"), "fake"
     device = pick_device(cfg.device)
     backend = get_backend(
         "vda",
@@ -143,7 +171,7 @@ def _make_backend(cfg: RunConfig):
         checkpoint=str(cfg.checkpoint) if cfg.checkpoint else None,
         cuda_memory_fraction=cfg.cuda_memory_fraction,
     )
-    return backend, backend_name
+    return backend, "vda"
 
 
 def run_many(cfgs: list[RunConfig], reporter: Reporter | None = None) -> list[RunResult | ReshotError]:
@@ -160,20 +188,25 @@ def run_many(cfgs: list[RunConfig], reporter: Reporter | None = None) -> list[Ru
     key = {(c.model, c.backend, c.device, c.checkpoint) for c in cfgs}
     if len(key) != 1:
         raise InputError("batch: every input must use the same --model / --backend / --device / --checkpoint")
-    backend, backend_name = _make_backend(cfgs[0])
-    results: list[RunResult | ReshotError] = []
-    try:
-        for i, cfg in enumerate(cfgs, 1):
-            rep.step("file", f"[{i}/{len(cfgs)}] {cfg.input} → {cfg.output}")
-            try:
-                results.append(_run_one(cfg, rep, backend, backend_name))
-            except ReshotError as exc:
-                rep.step("error", f"{cfg.input}: {exc}")
-                results.append(exc)
-    finally:
-        _release_accelerator(backend.device)
-        del backend
-    return results
+    # One backend per control type (`--control depth,pose` is two groups), each loaded
+    # once and released before the next group so depth and pose never share the GPU.
+    results: dict[int, RunResult | ReshotError] = {}
+    for control in dict.fromkeys(c.control for c in cfgs):
+        group = [(i, c) for i, c in enumerate(cfgs) if c.control == control]
+        backend, backend_name = _make_backend(group[0][1])
+        try:
+            for i, cfg in group:
+                rep.step("file", f"[{i + 1}/{len(cfgs)}] {cfg.input} → {cfg.output}")
+                try:
+                    results[i] = _run_one(cfg, rep, backend, backend_name)
+                except ReshotError as exc:
+                    rep.step("error", f"{cfg.input}: {exc}")
+                    results[i] = exc
+        finally:
+            if backend is not None:
+                _release_accelerator(backend.device)
+            del backend
+    return [results[i] for i in range(len(cfgs))]
 
 
 def run(cfg: RunConfig, reporter: Reporter | None = None, *, backend=None) -> RunResult:
@@ -190,12 +223,13 @@ def run(cfg: RunConfig, reporter: Reporter | None = None, *, backend=None) -> Ru
     try:
         return _run_one(cfg, reporter or NullReporter(), backend, backend_name)
     finally:
-        _release_accelerator(backend.device)
+        if backend is not None:
+            _release_accelerator(backend.device)
         del backend
 
 
 def _run_one(cfg: RunConfig, rep: Reporter, backend, backend_name: str) -> RunResult:
-    """One clip through plan → read → depth → grey → encode on an already-built backend."""
+    """One clip through plan → read → model → encode on an already-built backend (None for canny)."""
     t0 = time.time()
     target = TARGETS[cfg.target]
 
@@ -209,7 +243,9 @@ def _run_one(cfg: RunConfig, rep: Reporter, backend, backend_name: str) -> RunRe
     )
     if p.ram_estimate > p.ram_budget and not cfg.force:
         raise RamBudgetError(
-            p.ram_estimate, p.ram_budget, memory_verdict(p.frames, p.proc_w, p.proc_h)["max_frames_ok"]
+            p.ram_estimate,
+            p.ram_budget,
+            memory_verdict(p.frames, p.proc_w, p.proc_h, control=cfg.control)["max_frames_ok"],
         )
 
     # ── read ──────────────────────────────────────────────────────────────────
@@ -220,7 +256,54 @@ def _run_one(cfg: RunConfig, rep: Reporter, backend, backend_name: str) -> RunRe
     if target.max_seconds and t / fps > target.max_seconds + 1e-6:
         rep.step("warn", f"clip is {t / fps:.1f}s; {target.key} accepts ≤ {target.max_seconds:.0f}s — trim it")
 
-    # ── depth ─────────────────────────────────────────────────────────────────
+    # ── model → encode (per control type) ─────────────────────────────────────
+    if cfg.control == "depth":
+        stage = _depth_stage(cfg, rep, backend, frames, fps, p, target)
+    elif cfg.control == "pose":
+        stage = _pose_stage(cfg, rep, backend, frames, fps, p, target)
+    else:
+        stage = _canny_stage(cfg, rep, frames, fps, p, target)
+    del frames
+    out, device, precision, model_seconds, extra_metrics = stage
+    total = time.time() - t0
+    peak = _peak_rss_bytes()
+    rep.step("wrote", f"{out}  ({total:.1f}s total, peak RSS {gib(peak)})")
+
+    metrics = {
+        "version": __version__,
+        "control": cfg.control,
+        "config": {k: (str(v) if isinstance(v, Path) else v) for k, v in asdict(cfg).items()},
+        "plan": asdict(p),
+        "device": device,
+        "precision": precision,
+        "frames": t,
+        "fps": fps,
+        **extra_metrics,
+        "depth_seconds": round(model_seconds, 3),  # historical name: model time for any control
+        "ms_per_frame": round(model_seconds / t * 1000, 1),
+        "total_seconds": round(total, 2),
+        "peak_rss_bytes": peak,
+        "output": str(out),
+        "output_size": [p.out_w, p.out_h],
+        "output_bytes": os.path.getsize(out),
+    }
+    if cfg.metrics:
+        Path(cfg.metrics).parent.mkdir(parents=True, exist_ok=True)
+        with open(cfg.metrics, "w", encoding="utf-8") as fh:
+            json.dump(metrics, fh, ensure_ascii=False, indent=2)
+        rep.step("metrics", str(cfg.metrics))
+    if cfg.control == "depth" and not _license_ok(metrics):
+        rep.step("note", "weights are non-commercial; use --model small for commercial work")
+
+    return RunResult(
+        out, t, fps, p.out_w, p.out_h, device, precision, backend_name, model_seconds, total, peak, metrics
+    )
+
+
+def _depth_stage(cfg: RunConfig, rep: Reporter, backend, frames: np.ndarray, fps: float, p: Plan, target):
+    """frames → depth → whole-clip grey → grey video. Returns
+    `(output, device, precision, model_seconds, extra_metrics)`."""
+    t, h, w = frames.shape[:3]
     device = backend.device
     precision = "fp32" if backend.fp32 else "fp16"
     rep.step(
@@ -233,7 +316,6 @@ def _run_one(cfg: RunConfig, rep: Reporter, backend, backend_name: str) -> RunRe
     t1 = time.time()
     depths = backend.infer(frames, fps, input_size=input_size)
     depth_seconds = time.time() - t1
-    del frames
     gpu_peak = backend.peak_memory_bytes()
     _release_accelerator(backend.device)  # the model stays; only cached activations go
     rep.step("depth", f"{depth_seconds:.1f}s = {depth_seconds / t * 1000:.0f} ms/frame")
@@ -248,9 +330,84 @@ def _run_one(cfg: RunConfig, rep: Reporter, backend, backend_name: str) -> RunRe
         np.savez_compressed(cfg.npz, depths=depths, fps=fps)
         rep.step("npz", str(cfg.npz))
 
-    # ── grey → encode ─────────────────────────────────────────────────────────
     gray = to_gray(depths, invert=cfg.invert, clip_percent=cfg.clip_percent, gamma=cfg.gamma)
     del depths
+    _report_size(rep, p, target, w, h)
+    out = write_gray_video(
+        upsample_frames(gray, p.out_h, p.out_w), cfg.output, fps, crf=cfg.crf, size=(p.out_h, p.out_w)
+    )
+    extra = {"input_size_used": input_size, "model_input_resolution": [mw, mh], **gpu_peak}
+    return out, device, precision, depth_seconds, extra
+
+
+def _pose_stage(cfg: RunConfig, rep: Reporter, backend, frames: np.ndarray, fps: float, p: Plan, target):
+    """frames → skeletons → track/smooth → OpenPose render → RGB video."""
+    from .pose.skeleton import render_frame
+    from .pose.tracking import stabilise
+
+    t, h, w = frames.shape[:3]
+    device = backend.device
+    rep.step("model", f"{backend.info.name}/{backend.info.variant} on {device}, licence {backend.info.license}")
+    t1 = time.time()
+    last = {"pct": -1}
+
+    def progress(i: int, n: int) -> None:  # one line per 10 %, not per frame
+        pct = i * 10 // n
+        if pct != last["pct"]:
+            last["pct"] = pct
+            rep.step("pose", f"{i}/{n} frames")
+
+    clip = backend.infer(frames, fps, progress=progress)
+    model_seconds = time.time() - t1
+    people = [k.shape[0] for k in clip.keypoints]
+    rep.step(
+        "pose",
+        f"{model_seconds:.1f}s = {model_seconds / t * 1000:.0f} ms/frame; "
+        f"people per frame: min {min(people)}, max {max(people)}",
+    )
+    if max(people) == 0:
+        rep.step("warn", "no person found in any frame — the skeleton video will be black")
+    if cfg.pose_smooth:
+        stabilise(clip)
+        rep.step("pose", "tracked, hysteresis on visibility, One-Euro smoothed")
+    if cfg.keypoints:
+        Path(cfg.keypoints).parent.mkdir(parents=True, exist_ok=True)
+        with open(cfg.keypoints, "w", encoding="utf-8") as fh:
+            json.dump(clip.to_json_dict(), fh, ensure_ascii=False, separators=(",", ":"))
+        rep.step("keypoints", str(cfg.keypoints))
+
+    _report_size(rep, p, target, w, h)
+    parts = "body" + (" + hands" if cfg.pose_hands else "") + (" + face" if cfg.pose_face else "")
+    rep.step("render", f"OpenPose style, {parts}")
+
+    def rendered():
+        for i in range(clip.frames):
+            yield render_frame(
+                clip.keypoints[i], clip.scores[i], p.out_h, p.out_w,
+                src_w=w, src_h=h, hands=cfg.pose_hands, face=cfg.pose_face,
+            )  # fmt: skip
+
+    out = write_rgb_video(rendered(), cfg.output, fps, crf=cfg.crf, size=(p.out_h, p.out_w))
+    extra = {"people_per_frame_max": max(people), "people_per_frame_min": min(people)}
+    return out, device, "fp32", model_seconds, extra
+
+
+def _canny_stage(cfg: RunConfig, rep: Reporter, frames: np.ndarray, fps: float, p: Plan, target):
+    """frames → per-frame Canny → grey video. No model."""
+    from .edges import canny_frames
+
+    h, w = frames.shape[1:3]
+    _report_size(rep, p, target, w, h)
+    rep.step("canny", f"thresholds {cfg.canny_low}/{cfg.canny_high}")
+    t1 = time.time()
+    out = write_gray_video(
+        canny_frames(frames, p.out_h, p.out_w, low=cfg.canny_low, high=cfg.canny_high),
+        cfg.output, fps, crf=cfg.crf, size=(p.out_h, p.out_w),
+    )  # fmt: skip
+    return out, "cpu", "n/a", time.time() - t1, {"canny": [cfg.canny_low, cfg.canny_high]}
+
+
+def _report_size(rep: Reporter, p: Plan, target, w: int, h: int) -> None:
     if (p.out_h, p.out_w) != (h, w):
         rep.step("size", f"{w}x{h} → {p.out_w}x{p.out_h} (multiple of {target.multiple})")
     if target.min_pixels and p.out_w * p.out_h < target.min_pixels:
@@ -259,43 +416,6 @@ def _run_one(cfg: RunConfig, rep: Reporter, backend, backend_name: str) -> RunRe
             f"{p.out_w}x{p.out_h} is below {target.key}'s minimum of {target.min_pixels:,} pixels "
             "— the API will reject it; use a larger source or raise --max-res",
         )
-    out = write_gray_video(
-        upsample_frames(gray, p.out_h, p.out_w), cfg.output, fps, crf=cfg.crf, size=(p.out_h, p.out_w)
-    )
-    total = time.time() - t0
-    peak = _peak_rss_bytes()
-    rep.step("wrote", f"{out}  ({total:.1f}s total, peak RSS {gib(peak)})")
-
-    metrics = {
-        "version": __version__,
-        "config": {k: (str(v) if isinstance(v, Path) else v) for k, v in asdict(cfg).items()},
-        "plan": asdict(p),
-        "device": device,
-        "precision": precision,
-        "frames": t,
-        "fps": fps,
-        "input_size_used": input_size,
-        "model_input_resolution": [mw, mh],
-        "depth_seconds": round(depth_seconds, 3),
-        "ms_per_frame": round(depth_seconds / t * 1000, 1),
-        "total_seconds": round(total, 2),
-        "peak_rss_bytes": peak,
-        **gpu_peak,
-        "output": str(out),
-        "output_size": [p.out_w, p.out_h],
-        "output_bytes": os.path.getsize(out),
-    }
-    if cfg.metrics:
-        Path(cfg.metrics).parent.mkdir(parents=True, exist_ok=True)
-        with open(cfg.metrics, "w", encoding="utf-8") as fh:
-            json.dump(metrics, fh, ensure_ascii=False, indent=2)
-        rep.step("metrics", str(cfg.metrics))
-    if not _license_ok(metrics):
-        rep.step("note", "weights are non-commercial; use --model small for commercial work")
-
-    return RunResult(
-        out, t, fps, p.out_w, p.out_h, device, precision, backend_name, depth_seconds, total, peak, metrics
-    )
 
 
 def extract(

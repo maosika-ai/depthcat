@@ -1,12 +1,16 @@
-"""ReShot — turn any video into a depth-map video for video-generation control.
+"""ReShot — turn any video into a depth-map, skeleton or line video for video-generation control.
 
 from pathlib import Path
 from reshot import RunConfig, run
 run(RunConfig(input=Path("in.mp4"), output=Path("out.mp4"), target="h3"))
+run(RunConfig(input=Path("in.mp4"), output=Path("pose.mp4"), target="h3", control="pose"))
 
 from reshot import extract, to_gray, write_gray_video
 depths, fps = extract("in.mp4")            # float32 [T, H, W], larger = closer
 write_gray_video(to_gray(depths), "out.mp4", fps)
+
+Pose building blocks live in `reshot.pose` (PoseClip, skeleton.render_frame, tracking.stabilise);
+canny in `reshot.edges`.
 """
 
 from __future__ import annotations
@@ -25,7 +29,7 @@ os.environ.setdefault("PYTORCH_MPS_LOW_WATERMARK_RATIO", "0.5")
 from ._version import __version__
 from .config import RunConfig
 from .errors import BackendError, InputError, RamBudgetError, ReshotError, ToolMissingError
-from .io import probe_video, read_video, write_gray_video
+from .io import probe_video, read_video, write_gray_video, write_rgb_video
 from .pipeline import Plan, RunResult, extract, model_input_resolution, plan, resolve_input_size, run, run_many
 from .planning import memory_verdict, processing_max_res
 from .postprocess import to_gray, upsample_frames
@@ -58,4 +62,5 @@ __all__ = [
     "to_gray",
     "upsample_frames",
     "write_gray_video",
+    "write_rgb_video",
 ]

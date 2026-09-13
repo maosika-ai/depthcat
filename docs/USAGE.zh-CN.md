@@ -20,19 +20,23 @@ pip install reshot
 
 # 没有 ffmpeg？这个 extra 自带一个静态二进制
 pip install "reshot[ffmpeg]"
+
+# 骨架（--control pose）要 ONNX Runtime；N 卡改装 onnxruntime-gpu
+pip install "reshot[pose]"
 ```
 
 PyTorch 不锁 CUDA 版本；如果 `pip` 装错了，先按 https://pytorch.org/get-started/locally/ 装好再装 reshot。
 
-模型权重（111 MB）首次运行时从 Hugging Face 下到 `~/.cache/huggingface`。
-离线机器：把这个缓存目录拷过去，或用 `--checkpoint /路径/video_depth_anything_vits.pth`。
-国内：`export HF_ENDPOINT=https://hf-mirror.com`。
+模型权重首次运行时从 Hugging Face 下到 `~/.cache/huggingface`：深度 111 MB；`--control pose`
+另下两个 ONNX 文件（`yolox_l.onnx` + `dw-ll_ucoco_384.onnx`，约 340 MB，仓库 `yzd-v/DWPose`）。
+离线机器：把这个缓存目录拷过去，或用 `--checkpoint /路径/video_depth_anything_vits.pth`（深度）/
+`--checkpoint-dir /放两个onnx的目录`（骨架）。国内：`export HF_ENDPOINT=https://hf-mirror.com`。
 
 ## 网页
 
 只敲 `reshot` 不带参数，会在本机起一个网页并用浏览器打开。它和命令行是同一条流水线，只是套了个表单：
-拖入片子、选给哪家模型用和画质、运行、参考片与深度图并排预览、下载。什么都不会离开你的电脑，服务只监听
-127.0.0.1。结果存在 `~/ReShot`，文件名 `<片名>_depth_<目标>.mp4`（不会覆盖之前的结果），旁边有一份同名 `.json` 指标。
+拖入片子、选出什么（深度图 / 骨架 / 线稿）、给哪家模型用和画质、运行、参考片与结果并排预览、下载。什么都不会离开你的电脑，服务只监听
+127.0.0.1。结果存在 `~/ReShot`，文件名 `<片名>_<类型>_<目标>.mp4`（不会覆盖之前的结果），旁边有一份同名 `.json` 指标；骨架另有一份 `.keypoints.json` 骨架数据（页面上也有下载按钮）。
 
 ```bash
 reshot                                   # http://127.0.0.1:8765（被占就用下一个空闲端口）
@@ -40,7 +44,7 @@ reshot web --port 9000 --out ./depth     # 指定端口和目录
 reshot web --no-browser                  # 只打印地址不开浏览器，比如通过 SSH 用
 ```
 
-模型在第一次运行时加载一次，之后常驻；后面的任务立刻开始。任务排队一个个跑（一块显卡）。
+每种模型在第一次用到时加载一次，之后常驻；后面的任务立刻开始。任务排队一个个跑（一块显卡）。
 
 ## 命令行
 
@@ -48,7 +52,20 @@ reshot web --no-browser                  # 只打印地址不开浏览器，比�
 reshot 输入 -o 输出 [选项]
 ```
 
-### 模型
+### 出什么
+
+| 选项 | 默认 | 说明 |
+|---|---|---|
+| `--control depth\|pose\|canny` | `depth` | 输出哪种控制视频。逗号隔开可以一次出几种（`depth,pose`），这时 `-o` 必须是目录，文件名 `<片名>_<类型>.mp4`。 |
+| `--no-hands` | 关 | 骨架：只画身体，不画 21 点的手。 |
+| `--face` | 关 | 骨架：连 68 个脸点一起画。默认不画——脸型正是 ReShot 要扔掉的东西。 |
+| `--no-smooth` | 关 | 骨架：逐帧原始结果——不跟踪身份、不做可见性迟滞、不做 One-Euro 平滑。排查估计器时用。 |
+| `--pose-detect-every N` | `3` | 骨架：每 N 帧跑一次检人，中间帧用上一帧的骨架推框；剪切和骨架不可信时立刻重检。`1` = 每帧都检，CPU 上慢约 1.5 倍。289 帧演示片上 N=3 对 1 实测：280 帧人数一致、80% 关节误差 <2 px、91% <5 px。 |
+| `--keypoints 路径` | – | 骨架：同时把骨架数据存成 JSON，格式 `reshot-pose/1`（见下）。 |
+| `--checkpoint-dir 目录` | – | 骨架：放着 `yolox_l.onnx` 和 `dw-ll_ucoco_384.onnx` 的目录，跳过下载。 |
+| `--canny 低,高` | `100,200` | 线稿：迟滞阈值。低阈值越低线越多；高阈值越高只留强边。 |
+
+### 深度模型
 
 | 选项 | 默认 | 说明 |
 |---|---|---|
@@ -64,7 +81,7 @@ reshot 输入 -o 输出 [选项]
 |---|---|---|
 | `--target none\|seedance\|h3\|wan` | `none` | fps + 尺寸预设，见[目标预设](#目标预设)。 |
 | `--fps N` | 预设或原片 | 按**时间戳**选帧，30→24 真的是 24。绝不向上插帧。 |
-| `--max-res N` | `1280` | 输出长边上限。推理永远在模型分辨率进行，与此无关。 |
+| `--max-res N` | `1280` | 输出长边上限。深度推理永远在模型分辨率进行，与此无关；骨架和线稿按输出尺寸读帧。 |
 | `--max-frames N` | 全部 | 只处理前 N 帧。 |
 | `--invert` | 关 | 改成远白近黑。默认近白远黑（深度 ControlNet 要的就是这个）。 |
 | `--clip PCT` | `0` | 两端各裁 PCT% 再拉到 0–255，防一个热点像素压暗全片。`0` 为精确 min/max。 |
@@ -96,7 +113,7 @@ reshot 输入 -o 输出 [选项]
 |---|---|---|---|---|
 | `none` | 原片 | 偶数 | – | |
 | `seedance` | 24 | 16 的倍数（居中裁），≥ 407,696 像素（不够警告） | 15 秒（超了警告） | Seedance 2.0 / 2.5 参考视频（`@视频N` 继承动作与运镜） |
-| `h3` | 24 | 32 的倍数（居中裁） | 15 秒（超了警告） | MiniMax-H3-Fun-Controlnet-Union 深度输入 |
+| `h3` | 24 | 32 的倍数（居中裁） | 15 秒（超了警告） | MiniMax-H3-Fun-Controlnet-Union 的 depth / pose / canny 输入，或参考视频 |
 | `wan` | 16 | 16 的倍数 | – | Wan 2.1 VACE 控制视频；按文档取值，尚未端到端实测 |
 
 尺寸用**裁**不用补：补上去的黑边在生成模型眼里是一堵远墙。
@@ -125,7 +142,41 @@ write_gray_video(upsample_frames(gray, 1280, 736), "out.mp4", fps, size=(1280, 7
 
 属于"用户该修"的错误都是 `reshot.ReshotError` 的子类、带 `exit_code`；其余都是 bug。
 
-`RunConfig(..., backend="fake")` 用合成深度场跑完整条流水线、不载模型——几毫秒验证你自己的集成。
+`RunConfig(..., backend="fake")` 用合成深度场（`control="pose"` 时是两个走路的火柴人）跑完整条流水线、不载模型——几毫秒验证你自己的集成。
+
+### 骨架
+
+```python
+from reshot import RunConfig, run
+run(RunConfig(input=Path("in.mp4"), output=Path("pose.mp4"), target="h3", control="pose", keypoints=Path("pose.json")))
+```
+
+拆开用：
+
+```python
+from reshot import read_video, write_rgb_video
+from reshot.backends import get_backend
+from reshot.pose.tracking import stabilise, track, smooth, apply_hysteresis
+from reshot.pose.skeleton import render_frame, LAYOUT
+
+frames, fps = read_video("in.mp4")                    # uint8 RGB [T, H, W, 3]
+clip = get_backend("dwpose").infer(frames, fps)       # PoseClip：keypoints[t] = [N, 134, 2] 像素，scores[t] = [N, 134]
+stabilise(clip)                                       # = track → apply_hysteresis → smooth，原地改
+rgb = [render_frame(k, s, 480, 864, src_w=clip.width, src_h=clip.height) for k, s in zip(clip.keypoints, clip.scores)]
+write_rgb_video(np.stack(rgb), "pose.mp4", fps)
+clip.to_json_dict()                                   # 和 --keypoints 同一结构
+```
+
+**关键点布局**（`LAYOUT`）：0–17 身体，OpenPose-18 顺序（鼻、颈、右肩、右肘、右腕、左肩、左肘、左腕、右髋、右膝、右踝、左髋、左膝、左踝、右眼、左眼、右耳、左耳），18–23 脚，24–91 脸（68），92–112 左手（21），113–133 右手（21）。分数 0–1，低于 0.3 不画。
+
+**`--keypoints` 的 JSON**（`"format": "reshot-pose/1"`）：`width`、`height`、`fps`、`layout`，然后 `frames[t].people[n]` 带 `id`（跨帧稳定）、`keypoints`（134 × [x, y]，是**处理帧** `width × height` 的像素坐标，不是裁剪后的输出）、`scores`（134）。在跟踪 / 迟滞 / 平滑之后写出，和视频严格一致。
+
+### 线稿
+
+```python
+from reshot.edges import canny_frame
+edges = canny_frame(rgb_frame, out_h, out_w, low=100, high=200)   # uint8 [out_h, out_w]，0 或 255
+```
 
 ## 实战配方
 
@@ -154,10 +205,11 @@ write_gray_video(upsample_frames(gray, 1280, 736), "out.mp4", fps, size=(1280, 7
 
 ### MiniMax H3 Fun ControlNet（ComfyUI）
 
-1. `reshot 参考.mp4 -o 参考_depth.mp4 --target h3`（24 fps、32 倍数、≤15 秒）。
+1. `reshot 参考.mp4 -o 参考_depth.mp4 --target h3`（24 fps、32 倍数、≤15 秒）——Union 权重另外两个口用 `--control pose` / `--control canny`。
 2. ComfyUI 里装 [Fun ControlNet Union](https://huggingface.co/alibaba-pai/MiniMax-H3-Fun-Controlnet-Union) 权重，
-   把 `参考_depth.mp4` 作为控制视频、条件选 **depth**，提示词只写**长相**（人物、服装、光线、画风）。
-   走位和镜头由控制视频决定。
+   把控制视频接进去、条件选对应的 **depth** / **pose** / **canny**，提示词只写**长相**（人物、服装、光线、画风）。
+   走位和镜头由控制视频决定。不想倒文件：[ComfyUI-ReShot](https://github.com/maosika-ai/ComfyUI-ReShot) 节点包有
+   *ReShot Depth / Pose / Canny Video* 三个节点，直接接 Load Video。
 3. 生成分辨率和控制视频保持一致，或让节点缩放——但别补边。
 
 ### Wan 2.1 VACE
@@ -203,16 +255,22 @@ MPS 上 fp16 跑不完，所以强制 fp32。736×1280 约 0.5 秒/帧，12 秒�
 ## 原理
 
 ```
-输入视频 ─▶ 探测 ─▶ 计划（尺寸、帧数、内存）─▶ 按模型分辨率解码
-        ─▶ Video Depth Anything（32 帧窗口、10 帧重叠、跨窗口对齐）
-        ─▶ 整段归一化 → uint8，近白远黑
-        ─▶ 逐帧放大到输出尺寸 ─▶ 居中裁到目标倍数 ─▶ x264
+输入视频 ─▶ 探测 ─▶ 计划（尺寸、帧数、内存）─▶ 解码
+  深度：  按模型分辨率 ─▶ Video Depth Anything（32 帧窗口、10 帧重叠、跨窗口对齐）
+          ─▶ 整段归一化 → uint8，近白远黑 ─▶ 逐帧放大到输出尺寸
+  骨架：  按输出尺寸 ─▶ YOLOX-L 检人框（每 3 帧一次；中间帧用骨架推框）
+          ─▶ RTMPose 全身 133 点 ─▶ 转 OpenPose-18 布局 + 颈点
+          ─▶ 跨帧配 id（IoU）─▶ 可见性迟滞（>0.3 开、<0.2 关）─▶ 每关节 One-Euro
+          ─▶ OpenPose 画法：肢体椭圆压到 60%、关节点盖在上面、手用彩虹色连线
+  线稿：  按输出尺寸 ─▶ 灰度 ─▶ 3×3 高斯 ─▶ cv2.Canny(低, 高)
+          ─▶ 居中裁到目标倍数 ─▶ x264（深度 / 线稿走 gray，骨架走 rgb24）
 ```
 
 - **模型**：[Video Depth Anything](https://github.com/DepthAnything/Video-Depth-Anything)（CVPR 2025）。
   它的时序模块是深度不闪的原因；单图模型逐帧跑必闪。模型代码原样 vendored 在 `third_party/`（只改两行 import）。
 - **分辨率**：模型工作在 `--quality` 定的尺寸——16:9 的片 fast 是 644×364、full 是 924×518。喂更大的帧只会让每帧存的浮点深度变大；reshot 按这个尺寸解码，最后把 8 位结果放大回原片尺寸。
 - **归一化**：`(d − min) / (max − min)` 对**全部帧**做一次；可选百分位裁剪。
+- **骨架模型**：[DWPose](https://github.com/IDEA-Research/DWPose)（ICCV 2023 workshop），就是 `controlnet_aux` 出 pose 图用的那个估计器——所以我们的骨架长得和视频 ControlNet 训练时看到的一样。代码和权重都是 Apache-2.0。检测器喂 BGR、估计器喂 ImageNet 归一化的 RGB，和它们 mmdet / mmpose 的训练配置一致。
 - **编码**：`libx264 -crf 12 -pix_fmt yuv420p -g 2·fps -movflags +faststart`。
 
 ## 排错
@@ -228,6 +286,10 @@ MPS 上 fp16 跑不完，所以强制 fp32。736×1280 约 0.5 秒/帧，12 秒�
 | 输出比原片小 | `--target` 裁剪或 `--max-res` | 正常，见目标预设 |
 | 深度图有色带 | 调高了 `--crf` | 保持 ≤14 |
 | 人和背景糊在一起 | 场景纵深本身很小 | 试 `--clip 0.5 --gamma 1.3` |
+| `pose needs ONNX Runtime` | 没装 `pose` extra | `pip install "reshot[pose]"`（或 `onnxruntime-gpu`） |
+| 骨架视频全黑 / `no person found` | 检测器没看到人：人太小，或是画 / 动物这类检人器不认的东西 | 把原片裁得更紧；非人类用深度图 |
+| 某根肢体忽有忽无 | 估计器对它拿不准 | 迟滞已经在起作用；`--no-smooth` 看原始输出，或者接受——模型读「缺一根」比读「乱跳」强 |
+| 骨架跟不上快动作 | One-Euro 平滑 | `--no-smooth`；滞后按设计很小（beta 0.5） |
 
 ## 常见问题
 
@@ -237,7 +299,7 @@ Base/Large 和 Small 的差距我们没有自己测过；它们是 CC-BY-NC，�
 **为什么近白远黑？** 深度 ControlNet（H3 Fun、Wan VACE、SD depth）训练用的都是"越近越亮"的逆深度图。
 要反过来用 `--invert`。
 
-**能出骨架 / 边缘 / 法线吗？** 还不能，在路线图上。
+**能出骨架 / 边缘 / 法线吗？** 骨架和边缘 0.5.0 起有了（`--control pose`、`--control canny`）。法线、HED、MLSD 没人要就不做。
 
 **能去背景、只留人吗？** 还不能（`--people-only` 在路线图上）。全画面深度本身已经不含任何身份和画风信息。
 

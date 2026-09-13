@@ -54,7 +54,9 @@ def test_ram_budget_refuses_then_force_allows(tmp_path, monkeypatch):
     import reshot.pipeline as pl
 
     src = _clip(tmp_path / "src.mp4")
-    monkeypatch.setattr(pl, "memory_verdict", lambda *_: {"estimate": 10, "budget": 1, "ok": False, "max_frames_ok": 1})
+    monkeypatch.setattr(
+        pl, "memory_verdict", lambda *_, **__: {"estimate": 10, "budget": 1, "ok": False, "max_frames_ok": 1}
+    )
     with pytest.raises(RamBudgetError) as ei:
         run(RunConfig(input=src, output=tmp_path / "o.mp4", backend="fake"))
     assert ei.value.exit_code == 3 and "--max-frames 1" in str(ei.value)

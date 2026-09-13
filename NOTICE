@@ -6,7 +6,13 @@ Video Depth Anything (https://github.com/DepthAnything/Video-Depth-Anything),
 licensed under the Apache License 2.0. It is vendored, unmodified except for
 two import lines, under reshot/third_party/video_depth_anything/.
 
+The pose pre/post-processing in reshot/pose/dwpose.py is a NumPy rewrite of the ONNX
+reference implementation in DWPose (IDEA-Research, https://github.com/IDEA-Research/DWPose),
+licensed under the Apache License 2.0. The OpenPose-style renderer in reshot/pose/skeleton.py
+follows the drawing conventions of the same project (colours, limb table, hand edges).
+
 Model weights are downloaded at runtime from Hugging Face and carry their own licences:
   depth-anything/Video-Depth-Anything-Small  Apache-2.0     (default; commercial use OK)
   depth-anything/Video-Depth-Anything-Base   CC-BY-NC-4.0   (opt-in; non-commercial)
   depth-anything/Video-Depth-Anything-Large  CC-BY-NC-4.0   (opt-in; non-commercial)
+  yzd-v/DWPose  yolox_l.onnx + dw-ll_ucoco_384.onnx  Apache-2.0  (--control pose; commercial use OK)

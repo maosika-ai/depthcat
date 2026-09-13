@@ -47,3 +47,28 @@ def test_cli_end_to_end(tmp_path):
     metrics = tmp_path / "m.json"
     assert main([str(src), "-o", str(out), "--device", "cpu", "--target", "h3", "--metrics", str(metrics)]) == 0
     assert out.exists() and metrics.exists()
+
+
+def test_pose_cli_end_to_end_finds_a_person(tmp_path):
+    """Real DWPose on the CPU over the first 8 frames of the repo's demo clip (its top-left
+    quadrant is the reference footage, a person in a corridor). Downloads ~340 MB once."""
+    import json
+    from pathlib import Path
+
+    from reshot.cli import main
+
+    src = Path(__file__).resolve().parents[1] / "docs" / "demo-fight.mp4"
+    out, metrics, kp = tmp_path / "pose.mp4", tmp_path / "m.json", tmp_path / "kp.json"
+    rc = main(
+        [str(src), "-o", str(out), "--control", "pose", "--device", "cpu", "--target", "h3",
+         "--max-frames", "8", "--max-res", "720", "--metrics", str(metrics), "--keypoints", str(kp)]
+    )  # fmt: skip
+    assert rc == 0 and out.exists()
+    m = json.loads(metrics.read_text())
+    assert m["control"] == "pose" and m["people_per_frame_max"] >= 1, m
+    frames = json.loads(kp.read_text())["frames"]
+    assert len(frames) == 8 and any(p["scores"][1] > 0.3 for p in frames[0]["people"])  # a neck was seen
+    cap = cv2.VideoCapture(str(out))
+    ok, frame = cap.read()
+    cap.release()
+    assert ok and frame.max() > 100  # coloured skeleton, not a black video

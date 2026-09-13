@@ -20,22 +20,28 @@ pip install reshot
 
 # no ffmpeg? this extra bundles a static binary
 pip install "reshot[ffmpeg]"
+
+# skeletons (--control pose) need ONNX Runtime; on an NVIDIA card use onnxruntime-gpu instead
+pip install "reshot[pose]"
 ```
 
 PyTorch is not pinned to a CUDA version; install the build for your machine first if
 `pip` picks the wrong one (see https://pytorch.org/get-started/locally/).
 
-Model weights (111 MB) download from Hugging Face on first run into `~/.cache/huggingface`.
-Offline machines: copy that cache, or pass `--checkpoint /path/video_depth_anything_vits.pth`.
+Model weights download from Hugging Face on first run into `~/.cache/huggingface`: 111 MB for
+depth, and for `--control pose` two ONNX files (`yolox_l.onnx` + `dw-ll_ucoco_384.onnx`, ~340 MB)
+from `yzd-v/DWPose`. Offline machines: copy that cache, or pass `--checkpoint
+/path/video_depth_anything_vits.pth` (depth) / `--checkpoint-dir /folder/with/both.onnx` (pose).
 In China: `export HF_ENDPOINT=https://hf-mirror.com`.
 
 ## Web page
 
 `reshot` with no arguments starts a local web page and opens it in your browser. It is the
-same pipeline behind a form: drop a clip, choose the target model and quality, run, preview
-reference and depth side by side, download. Nothing leaves your machine; the server listens on
-127.0.0.1 only. Results are saved to `~/ReShot` with `<clip>_depth_<target>.mp4` names (never
-overwriting an earlier result) and a `.json` of metrics next to each.
+same pipeline behind a form: drop a clip, choose what to make (depth map / skeleton / lines),
+the target model and quality, run, preview reference and result side by side, download. Nothing
+leaves your machine; the server listens on 127.0.0.1 only. Results are saved to `~/ReShot` with
+`<clip>_<control>_<target>.mp4` names (never overwriting an earlier result), a `.json` of metrics
+next to each, and for skeletons a `.keypoints.json` with the pose data (a download button too).
 
 ```bash
 reshot                                   # http://127.0.0.1:8765 (next free port if taken)
@@ -43,7 +49,7 @@ reshot web --port 9000 --out ./depth     # choose port and folder
 reshot web --no-browser                  # print the URL only, e.g. over SSH
 ```
 
-The model loads once when the first job runs and stays loaded; later runs start immediately.
+Each model loads once when its first job runs and stays loaded; later runs start immediately.
 Jobs queue one after another (one GPU).
 
 ## Command line
@@ -52,7 +58,20 @@ Jobs queue one after another (one GPU).
 reshot INPUT -o OUTPUT [options]
 ```
 
-### Model
+### Control type
+
+| option | default | notes |
+|---|---|---|
+| `--control depth\|pose\|canny` | `depth` | What the output shows. Several at once with commas (`depth,pose`), then `-o` must be a directory and files are named `<name>_<control>.mp4`. |
+| `--no-hands` | off | pose: body only, skip the 21-point hands. |
+| `--face` | off | pose: also draw the 68 face points. Off because the face shape is what ReShot is meant to throw away. |
+| `--no-smooth` | off | pose: raw per-frame output — no identity tracking, no visibility hysteresis, no One-Euro smoothing. For debugging the estimator. |
+| `--pose-detect-every N` | `3` | pose: run the person detector every N frames and follow the skeletons in between; cuts and unreliable skeletons re-detect at once. `1` = every frame, ~1.5× slower on CPU. Measured N=3 vs 1 on the 289-frame demo: 280 frames identical people count, 80 % of joints within 2 px, 91 % within 5 px. |
+| `--keypoints PATH` | – | pose: also write the skeletons as JSON, format `reshot-pose/1` (see below). |
+| `--checkpoint-dir DIR` | – | pose: folder with `yolox_l.onnx` and `dw-ll_ucoco_384.onnx`, skips the download. |
+| `--canny LOW,HIGH` | `100,200` | canny: hysteresis thresholds. Lower LOW = more lines; higher HIGH = only strong edges. |
+
+### Depth model
 
 | option | default | notes |
 |---|---|---|
@@ -68,13 +87,13 @@ reshot INPUT -o OUTPUT [options]
 |---|---|---|
 | `--target none\|seedance\|h3\|wan` | `none` | fps + frame-size preset, see [Targets](#targets). |
 | `--fps N` | preset or source | Frames are chosen by timestamp, so 30 → 24 yields 24, not 30. Never upsamples. |
-| `--max-res N` | `1280` | Cap on the output's longer side. Inference always runs at model resolution regardless. |
+| `--max-res N` | `1280` | Cap on the output's longer side. Depth inference always runs at model resolution regardless; pose and canny read frames at the output size. |
 | `--max-frames N` | all | Stop after N source frames. |
 | `--invert` | off | far = white. Default is near = white (what depth ControlNets expect). |
 | `--clip PCT` | `0` | Trim PCT % from each tail before scaling to 0–255, so one hot pixel can't crush contrast. `0` = exact min/max. |
 | `--gamma G` | `1.0` | > 1 darkens mid-tones: more separation close to the camera. |
 | `--crf N` | `12` | x264 quality. Generous on purpose — banding in a control video becomes jitter in the generated clip. |
-| `--npz PATH` | – | Raw float32 depth at processing resolution (`depths[T,H,W]`, `fps`). |
+| `--npz PATH` | – | depth: raw float32 depth at processing resolution (`depths[T,H,W]`, `fps`). |
 | `--metrics PATH` | – | JSON with config, plan, timings, peak RSS, output size. |
 
 ### Safety
@@ -100,7 +119,7 @@ reshot INPUT -o OUTPUT [options]
 |---|---|---|---|---|
 | `none` | source | even | – | |
 | `seedance` | 24 | multiple of 16 (centre crop), ≥ 407,696 px (warns) | 15 s (warns) | Seedance 2.0 / 2.5 reference video (`@视频N` motion + camera) |
-| `h3` | 24 | multiple of 32 (centre crop) | 15 s (warns) | MiniMax-H3-Fun-Controlnet-Union depth input |
+| `h3` | 24 | multiple of 32 (centre crop) | 15 s (warns) | MiniMax-H3-Fun-Controlnet-Union depth / pose / canny input, or reference video |
 | `wan` | 16 | multiple of 16 | – | Wan 2.1 VACE control video; values from the docs, not yet verified end-to-end |
 
 Frame size is **cropped**, never padded: a padded black border reads to the generator as a far wall.
@@ -130,8 +149,49 @@ write_gray_video(upsample_frames(gray, 1280, 736), "out.mp4", fps, size=(1280, 7
 Errors that are the *user's* to fix are subclasses of `reshot.ReshotError` and carry an
 `exit_code`; anything else is a bug.
 
-`RunConfig(..., backend="fake")` runs the entire pipeline with a synthetic depth field and no
-model — handy for testing your own integration in milliseconds.
+`RunConfig(..., backend="fake")` runs the entire pipeline with a synthetic depth field (or, for
+`control="pose"`, two walking stick figures) and no model — handy for testing your own integration
+in milliseconds.
+
+### Pose
+
+```python
+from reshot import RunConfig, run
+run(RunConfig(input=Path("in.mp4"), output=Path("pose.mp4"), target="h3", control="pose", keypoints=Path("pose.json")))
+```
+
+The pieces, for your own pipeline:
+
+```python
+from reshot import read_video, write_rgb_video
+from reshot.backends import get_backend
+from reshot.pose.tracking import stabilise, track, smooth, apply_hysteresis
+from reshot.pose.skeleton import render_frame, LAYOUT
+
+frames, fps = read_video("in.mp4")                    # uint8 RGB [T, H, W, 3]
+clip = get_backend("dwpose").infer(frames, fps)       # PoseClip: keypoints[t] = [N, 134, 2] px, scores[t] = [N, 134]
+stabilise(clip)                                       # = track → apply_hysteresis → smooth, in place
+rgb = [render_frame(k, s, 480, 864, src_w=clip.width, src_h=clip.height) for k, s in zip(clip.keypoints, clip.scores)]
+write_rgb_video(np.stack(rgb), "pose.mp4", fps)
+clip.to_json_dict()                                   # the same structure as --keypoints
+```
+
+**Keypoint layout** (`LAYOUT`): 0–17 body in OpenPose-18 order (nose, neck, R-shoulder, R-elbow,
+R-wrist, L-shoulder, L-elbow, L-wrist, R-hip, R-knee, R-ankle, L-hip, L-knee, L-ankle, R-eye,
+L-eye, R-ear, L-ear), 18–23 feet, 24–91 face (68), 92–112 left hand (21), 113–133 right hand (21).
+Scores are 0–1; a joint below 0.3 is not drawn.
+
+**`--keypoints` JSON** (`"format": "reshot-pose/1"`): `width`, `height`, `fps`, `layout`, then
+`frames[t].people[n]` with `id` (stable across frames), `keypoints` (134 × [x, y] in pixels of the
+*processing* frame — `width × height` — not the cropped output) and `scores` (134). Written after
+tracking / hysteresis / smoothing, so it matches the video exactly.
+
+### Canny
+
+```python
+from reshot.edges import canny_frame
+edges = canny_frame(rgb_frame, out_h, out_w, low=100, high=200)   # uint8 [out_h, out_w], 0 or 255
+```
 
 ## Recipes
 
@@ -161,10 +221,13 @@ model — handy for testing your own integration in milliseconds.
 
 ### MiniMax H3 Fun ControlNet (ComfyUI)
 
-1. `reshot ref.mp4 -o ref_depth.mp4 --target h3` (24 fps, ×32, ≤ 15 s).
+1. `reshot ref.mp4 -o ref_depth.mp4 --target h3` (24 fps, ×32, ≤ 15 s) — or `--control pose` /
+   `--control canny` for the other two conditions the Union weights accept.
 2. In ComfyUI with the [Fun ControlNet Union](https://huggingface.co/alibaba-pai/MiniMax-H3-Fun-Controlnet-Union)
-   weights, load `ref_depth.mp4` as the control video, choose the **depth** condition, write your
+   weights, load the control video, choose the matching condition (**depth** / **pose** / **canny**), write your
    prompt for the *look* (cast, wardrobe, lighting, style). Staging and camera come from the control video.
+   Or skip the files: the [ComfyUI-ReShot](https://github.com/maosika-ai/ComfyUI-ReShot) pack has
+   *ReShot Depth / Pose / Canny Video* nodes that take a Load Video node directly.
 3. Keep the generator's resolution equal to the control video's, or let the node resize — but do not
    pad.
 
@@ -216,10 +279,15 @@ records the exact config and plan) a run is fully reproducible.
 ## How it works
 
 ```
-input video ─▶ probe ─▶ plan (sizes, frames, RAM) ─▶ decode at model resolution
-            ─▶ Video Depth Anything (32-frame windows, 10-frame overlap, cross-window alignment)
-            ─▶ whole-clip normalisation → uint8, near = white
-            ─▶ per-frame upscale to output size ─▶ centre-crop to target multiple ─▶ x264
+input video ─▶ probe ─▶ plan (sizes, frames, RAM) ─▶ decode
+  depth:    at model resolution ─▶ Video Depth Anything (32-frame windows, 10-frame overlap, alignment)
+            ─▶ whole-clip normalisation → uint8, near = white ─▶ per-frame upscale to output size
+  pose:     at output size ─▶ YOLOX-L person boxes (every 3rd frame; skeleton-tracked boxes between)
+            ─▶ RTMPose whole-body, 133 points per person ─▶ OpenPose-18 layout + neck
+            ─▶ track ids (IoU) ─▶ visibility hysteresis (on > 0.3, off < 0.2) ─▶ One-Euro per joint
+            ─▶ OpenPose render: limbs as ellipses at 60 %, joints on top, hands as rainbow edges
+  canny:    at output size ─▶ grey ─▶ 3×3 Gaussian ─▶ cv2.Canny(low, high)
+            ─▶ centre-crop to target multiple ─▶ x264 (grey for depth / canny, rgb24 for pose)
 ```
 
 - **Model**: [Video Depth Anything](https://github.com/DepthAnything/Video-Depth-Anything)
@@ -229,6 +297,10 @@ input video ─▶ probe ─▶ plan (sizes, frames, RAM) ─▶ decode at model
   clip. Feeding larger frames only inflates the float depth kept per frame; reshot decodes at that
   size and upscales the 8-bit result to the source size.
 - **Normalisation**: `(d − min) / (max − min)` over *all* frames; optional percentile clip.
+- **Pose model**: [DWPose](https://github.com/IDEA-Research/DWPose) (ICCV 2023 workshop), the
+  estimator behind `controlnet_aux`'s pose images — so the skeletons look like what the video
+  ControlNets were trained on. Apache-2.0 code and weights. The detector gets BGR, the estimator RGB
+  with ImageNet normalisation, matching their mmdet / mmpose training configs.
 - **Encoding**: `libx264 -crf 12 -pix_fmt yuv420p -g 2·fps -movflags +faststart`.
 
 ## Troubleshooting
@@ -244,6 +316,10 @@ input video ─▶ probe ─▶ plan (sizes, frames, RAM) ─▶ decode at model
 | output smaller than source | `--target` crop or `--max-res` | expected; see Targets |
 | banding in the depth map | `--crf` raised | keep ≤ 14 |
 | people look flat / merged with background | scene has little depth range | try `--clip 0.5 --gamma 1.3` |
+| `pose needs ONNX Runtime` | the `pose` extra is not installed | `pip install "reshot[pose]"` (or `onnxruntime-gpu`) |
+| skeleton video is black / `no person found` | the detector saw nobody: people too small, or a drawing / animal the person detector does not know | try a tighter crop of the source; for non-humans use depth |
+| a limb pops in and out | the estimator is unsure of it | that is the hysteresis already; `--no-smooth` to see the raw output, or accept — the model reads a missing limb better than a jumping one |
+| skeleton lags a fast move | One-Euro smoothing | `--no-smooth`; lag is small by design (beta 0.5) |
 
 ## FAQ
 
@@ -255,7 +331,7 @@ choice for commercial work.
 **Why near = white?** Depth ControlNets (H3 Fun, Wan VACE, SD depth) were trained on inverse-depth
 maps where closer is brighter. `--invert` if a tool wants the opposite.
 
-**Can it output pose / canny / normals?** Not yet — on the roadmap.
+**Can it output pose / canny / normals?** Pose and canny since 0.5.0 (`--control pose`, `--control canny`). Normals, HED and MLSD are not planned unless someone asks.
 
 **Does it remove the background / keep only people?** Not yet (`--people-only` is on the roadmap).
 The full-frame depth already carries no identity or style.

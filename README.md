@@ -1,6 +1,6 @@
 <h1 align="center">ReShot</h1>
 <p align="center"><b>Copy the shot, not the actors.</b></p>
-<p align="center">ReShot turns a reference video into a depth map, so Seedance or MiniMax H3 can repeat its choreography and camera moves — with your own characters in it.</p>
+<p align="center">ReShot turns a reference video into a depth map, a skeleton or a line video, so Seedance or MiniMax H3 can repeat its choreography and camera moves — with your own characters in it.</p>
 
 <p align="center"><img src="docs/demo-fight.gif" width="720" alt="a fight scene, its depth map, and three new takes generated from it"></p>
 <p align="center"><sub>Top: the reference and its depth map. Bottom: three takes generated from that depth map — two women, one rabbit. Same moves, same camera. <a href="docs/demo-fight.mp4">Full-resolution clip</a>.</sub></p>
@@ -23,13 +23,21 @@ You have a clip whose fight, dance or camera move is exactly what you want in yo
 
 ## What ReShot does
 
-ReShot takes an `.mp4` in and writes an `.mp4` out. The output is a **depth map video**: every frame is grey, near things are white, far things are black. It keeps where everyone stands, how big they are, how they move and how the camera moves. It throws away faces, clothes, lighting and style.
+ReShot takes an `.mp4` in and writes an `.mp4` out. The output is a control video — one of three kinds:
 
-<p align="center"><img src="docs/img/step1_reference.jpg" width="360" alt="reference frame"> <img src="docs/img/step2_depth.jpg" width="360" alt="the same frame as a depth map"></p>
+| `--control` | what comes out | keeps | throws away | pick it for |
+|---|---|---|---|---|
+| **`depth`** (default) | grey video, near = white, far = black | where everyone stands, how big they are, every move, the camera, the set's shape | faces, clothes, lighting, style | anything: fights, walks, camera moves, crowds |
+| **`pose`** | OpenPose-style skeletons — coloured stick figures on black, hands included, faces not | every limb and hand, exactly | everything else, including body shape and the set | dance, martial arts, anything where the limbs are the point; the `pose` input of MiniMax H3 Fun ControlNet |
+| **`canny`** | white edge lines on black | composition and outlines | colour and shading — but *not* the outline of a face or a costume | when you want the picture's layout, not only the people |
 
-You give that grey video to your video model as the reference and describe the people and the look in the prompt. The model takes the moves from the video and everything else from your words.
+<p align="center"><img src="docs/img/step1_reference.jpg" width="300" alt="reference frame"> <img src="docs/img/step2_depth.jpg" width="300" alt="the same frame as a depth map"> <img src="docs/img/step2_pose.jpg" width="300" alt="the same frame as a skeleton"></p>
+<p align="center"><img src="docs/demo-controls.gif" width="864" alt="the corridor fight as reference, depth map and skeleton, playing side by side"></p>
+<p align="center"><sub>Reference · depth map · skeleton, the same 12 seconds. Four stills at full size: <a href="docs/img/controls_strip.jpg">controls_strip.jpg</a>.</sub></p>
 
-Technically: monocular video depth estimation. The model predicts relative inverse depth for every frame; ReShot normalises it once over the whole clip to 8-bit grey (near = white) and encodes it as a standard depth-map video.
+You give that video to your video model as the reference and describe the people and the look in the prompt. The model takes the moves from the video and everything else from your words.
+
+Technically: depth is monocular video depth estimation (Video Depth Anything), normalised once over the whole clip to 8-bit grey; pose is DWPose (a YOLOX person detector plus an RTMPose whole-body estimator) with identity tracking, visibility hysteresis and One-Euro smoothing across frames, drawn in the OpenPose layout the video ControlNets were trained on; canny is OpenCV, no model at all.
 
 ## How to use it
 
@@ -57,11 +65,11 @@ set HF_ENDPOINT=https://hf-mirror.com if I'm in China, run the fake-backend smok
 on a short clip with --metrics and show me the numbers. Don't say it's done until depth.mp4 exists.
 ```
 
-### 2. Make the depth map
+### 2. Make the control video
 
-**Easiest — the web page.** Type `reshot` with nothing after it: a page opens in your browser (everything stays on your computer). Drop the clip in, pick which model it is for, click **Make depth map**. You get the reference and the depth map side by side, the numbers, a download button, and the prompt line to paste into Seedance or MiniMax H3.
+**Easiest — the web page.** Type `reshot` with nothing after it: a page opens in your browser (everything stays on your computer). Drop the clip in, pick **what to make** (depth map / skeleton / lines) and which model it is for, click the button. You get the reference and the result side by side, the numbers, a download button, and the prompt line to paste into Seedance or MiniMax H3.
 
-<p align="center"><img src="docs/img/web_ui_en.jpg" width="720" alt="the ReShot web page: reference clip and depth map side by side, target and quality on the right"></p>
+<p align="center"><img src="docs/img/web_ui_en.jpg" width="720" alt="the ReShot web page: reference clip and skeleton side by side; what to make, target and quality on the right"></p>
 
 ```bash
 reshot                     # opens http://127.0.0.1:8765 — results land in ~/ReShot
@@ -71,10 +79,14 @@ reshot web --port 9000 --out ./depth --no-browser     # options, if you want the
 **Or the command line**, for scripts and folders:
 
 ```bash
-reshot reference.mp4 -o depth.mp4 --target seedance
+reshot reference.mp4 -o depth.mp4 --target seedance                  # depth map (default)
+reshot reference.mp4 -o pose.mp4  --target h3 --control pose         # skeletons; pip install "reshot[pose]" first
+reshot reference.mp4 -o out/      --control depth,pose,canny         # all three, out/reference_<control>.mp4
 ```
 
-`--target seedance` sets 24 fps, H.264, a frame size that is a multiple of 16 and at least 407,696 pixels, up to 15 seconds — the reference-video rules of the Seedance API. For MiniMax H3 use `--target h3` (multiples of 32). On an RTX 4090 a 12-second clip takes about 20 seconds; on a MacBook a few minutes. A whole folder at once, one model load: `reshot clips/*.mp4 -o depth/ --target seedance`.
+`--target seedance` sets 24 fps, H.264, a frame size that is a multiple of 16 and at least 407,696 pixels, up to 15 seconds — the reference-video rules of the Seedance API. For MiniMax H3 use `--target h3` (multiples of 32). On an RTX 4090 a 12-second clip takes about 20 seconds for depth; on a MacBook a few minutes for depth and about 1.5 minutes for skeletons (the pose models run on the CPU there). A whole folder at once, one model load: `reshot clips/*.mp4 -o depth/ --target seedance`.
+
+`--control pose` also writes the skeletons as JSON with `--keypoints pose.json` (every person, every frame, 134 points with scores, a stable id per person) — so you can edit, retarget or analyse them; the web page offers the same file as a download.
 
 ### 3. Give it to the video model
 
@@ -84,6 +96,8 @@ reshot reference.mp4 -o depth.mp4 --target seedance
 参考@视频1的动作与运镜，顺序与视频保持一致。
 一名穿深绿色丝绒旗袍的女子在狭窄的金属走廊里与三名黑衣守卫搏斗，冷蓝走廊光，红色警示灯，电影感。
 ```
+
+With a skeleton video say so, and say the lines must not appear: `参考@视频1里火柴人的动作与运镜，顺序与视频保持一致；只取动作和机位，画面里不要出现骨架线条。`
 
 **ComfyUI.** Install [ComfyUI-ReShot](https://github.com/maosika-ai/ComfyUI-ReShot) and drop the *ReShot Depth Video* node between Load Video and your model — no command line at all.
 
@@ -106,6 +120,8 @@ is transferred onto <Subject 1> and <Subject 2>; its grey depth look is not tran
 
 Two things in there matter. **Say in words what happens in the grey clip** — the model reads the depth map far better when the prompt tells it what the blobs are doing. **Say that the grey look is not to be copied**, or you may get a grey film back.
 
+For a skeleton video the same two sentences become `<Video 1>, an OpenPose skeleton video — coloured stick figures on black, one per person: …` and `… the stick-figure look is not transferred.` With the Fun ControlNet weights in ComfyUI, `pose.mp4` goes straight into the ControlNet's **pose** input instead — no prompt gymnastics needed. The web page prints the right lines for whichever you made.
+
 ### 4. What comes out
 
 <p align="center"><img src="docs/img/step4_takes.jpg" width="720" alt="the three takes"></p>
@@ -117,6 +133,8 @@ Left to right: [Jiang Xue](docs/prompts/take1_jiangxue_armor.txt) in bronze armo
 **Transfers:** who stands where, how big they are relative to each other, every move and its timing, the cuts, and the camera — push-ins, tracking, handheld shake.
 
 **Doesn't:** faces (use a character sheet), clothes, lighting, colour, props in detail, and anything smaller than a hand. Those come from your prompt and your reference images.
+
+**Depth or pose?** Depth carries the whole picture — where the walls are, who is bigger, a pipe being torn off — and works on anything, people or not. Pose carries only the people, but every limb and finger exactly, and nothing of their body shape or the set. Use pose for dance and martial arts, depth for everything else; when in doubt make both (`--control depth,pose`) and see which one the model follows better. One case where pose is the wrong tool: a tight close-up. The estimator still guesses where the shoulders and hips are when they are off screen, and draws them along the frame edge — depth carries a close-up faithfully. Canny carries the outline of clothes and faces too, so "copy the shot, not the actors" is only half true for it.
 
 Things we learned making the demo:
 
@@ -134,6 +152,8 @@ Things we learned making the demo:
 | **Apple Silicon** | Yes | default `fast`: M2 Max 46 ms/frame, a 12 s clip in about 18 s |
 | **CPU only** | Yes, slow | ~1.8 s/frame |
 | **Host RAM** | 16 GB covers clips up to ~27 s at 720p | peak = 2 GB + 224 MB per second of 720p; the tool refuses before starting if a clip won't fit |
+| **`--control pose`** | any of the above; needs `pip install "reshot[pose]"` (ONNX Runtime; `onnxruntime-gpu` for CUDA) | M2 Max on the CPU: 306 ms/frame, a 12 s clip in 90 s; two weight files, 340 MB, once. Host RAM ≈ 1.4 GB |
+| **`--control canny`** | anything | no model; the 12 s clip in under a second |
 
 **`--quality` — the resolution the model works at.** The output video is always the size of your source; this sets the size of the picture the depth model looks at.
 
@@ -142,7 +162,9 @@ Things we learned making the demo:
 | `fast` (default) | 644×364 · 364×644 · 490×364 | ~3 GB | 34 ms/frame on a 3080 Ti | large shapes identical to full; a loose strand of hair merges into the cheek |
 | `full` | 924×518 · 518×924 · 686×518 | ~11 GB | 83 ms/frame on a 3080 Ti | sharper fine silhouettes |
 
-The web page has the same two choices under **Quality**; the command line takes `--quality`.
+The web page has the same two choices under **Quality**; the command line takes `--quality`. Quality applies to depth only — the pose models have fixed working sizes (640 px for the detector, 288×384 per person for the estimator) and canny is per pixel at the output size.
+
+**Pose speed knob — `--pose-detect-every N` (default 3).** The person detector is 80 % of the pose cost on a CPU, so it runs on every third frame and the skeletons of the previous frame supply the boxes in between; a cut in the clip or a skeleton that has gone unreliable brings the detector back at once. Measured on the 289-frame corridor clip against detecting every frame: 280 of 289 frames have the same people, 80 % of joints land within 2 px and 91 % within 5 px; the 9 differing frames are a person entering the shot and getting their skeleton one or two frames late. It is 35 % faster (306 vs 469 ms/frame on an M2 Max). `--pose-detect-every 1` turns it off.
 
 We recommend `fast`: for copying blocking and camera it is all a video model needs — the demo takes were made from a depth map shrunk to 320×176 before it even reached MiniMax H3, far below either setting. Measured full against fast on the same 294-frame clip: mean difference 5.3 of 255 grey levels, 95 % of pixels within 15, edge energy −4.5 %. Use `full` for close-ups where thin silhouettes matter and you have the VRAM. The run prints the exact resolution it uses (`model  fast: the model sees 644x364`) and records it in `--metrics`. Experts can set any short side with `--input-size`.
 
@@ -168,11 +190,26 @@ from reshot import RunConfig, run
 run(RunConfig(input=Path("reference.mp4"), output=Path("depth.mp4"), target="seedance"))
 ```
 
-Three details make the output something a video model will actually follow:
+Four details make the output something a video model will actually follow:
 
 - **One scale for the whole clip.** Depth is normalised once over all frames, never per frame, so a wall keeps the same grey when someone walks past it. Per-frame normalisation makes the scene "breathe".
+- **Skeletons that don't flicker.** A per-frame pose estimator swaps people, jitters joints and blinks limbs at the visibility threshold; a video model reads all three as motion. ReShot tracks each person across frames (IoU of body boxes), holds a joint until its score drops well below the draw threshold (hysteresis), and runs a One-Euro filter per joint — still at rest, quick to follow a punch.
 - **Frames picked by timestamp.** 30 fps → 24 fps really is 24; nothing is duplicated or dropped in a pattern the model could learn.
 - **Cropped, never padded.** Frame size is trimmed to the model's grid. A black border would read as a far wall.
+
+Pose from Python:
+
+```python
+from reshot import RunConfig, run
+run(RunConfig(input=Path("reference.mp4"), output=Path("pose.mp4"), target="h3", control="pose", keypoints=Path("pose.json")))
+
+from reshot.backends import get_backend
+from reshot.pose.tracking import stabilise
+from reshot.pose.skeleton import render_frame
+clip = get_backend("dwpose").infer(frames, fps)   # frames: uint8 RGB [T, H, W, 3] → PoseClip
+stabilise(clip)                                    # track → hysteresis → smooth, in place
+rgb = render_frame(clip.keypoints[0], clip.scores[0], h, w, hands=True, face=False)
+```
 
 The model is Video Depth Anything Small (ByteDance, CVPR 2025). It works on overlapping 32-frame windows and aligns them, so depth doesn't jitter between frames. A 12-second 720p clip peaks at 3.9 GB of host RAM and 11 GB of VRAM (3 GB with `--input-size 364`) (measured; the estimate the tool shows before starting is a fitted line, within 0.05 GB of measurements) and it refuses up front if a clip won't fit. A `fake` backend runs the whole pipeline without a model for your own tests. Errors that are yours to fix are `ReshotError` subclasses with an exit code and a concrete fix in the message.
 
@@ -181,11 +218,11 @@ The model is Video Depth Anything Small (ByteDance, CVPR 2025). It works on over
 - **Made something?** Post the reference, the depth map, the take and your prompt line in [Show and tell](https://github.com/maosika-ai/reshot/discussions/2). The best ones get linked here.
 - **The model didn't follow the depth map?** Ask in [Q&A](https://github.com/maosika-ai/reshot/discussions/categories/q-a) with one frame and the prompt — it is usually the prompt.
 - **Something broke?** [Open an issue](https://github.com/maosika-ai/reshot/issues/new/choose). We answer within a day.
-- **Want to help?** Start with a [good first issue](https://github.com/maosika-ai/reshot/labels/good%20first%20issue): a preset for another model, a Colab notebook, a README in your language. Pose output is the big one — see [#6](https://github.com/maosika-ai/reshot/issues/6).
+- **Want to help?** Start with a [good first issue](https://github.com/maosika-ai/reshot/labels/good%20first%20issue): a preset for another model, a README in your language, HED / MLSD outputs for the other two slots of the H3 Fun ControlNet. Pose landed in 0.5.0 ([#6](https://github.com/maosika-ai/reshot/issues/6)).
 
 ## License
 
-Apache-2.0, and so is the default model. The vendored model code is under `reshot/third_party/`. Use it in a product, a pipeline, a service. The larger research-only weights (Base, Large) are CC-BY-NC and never load unless you ask for them.
+Apache-2.0, and so are the default depth model and the pose models (DWPose, both code and weights). The vendored model code is under `reshot/third_party/`; the pose pre/post-processing is a NumPy rewrite of DWPose's ONNX reference, credited in [NOTICE](NOTICE). Use it in a product, a pipeline, a service. The larger research-only depth weights (Base, Large) are CC-BY-NC and never load unless you ask for them.
 
 Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 

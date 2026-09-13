@@ -22,6 +22,12 @@ import os
 HOST_BASE_BYTES = int(2.0 * 2**30)
 HOST_BYTES_PER_PIXEL_FRAME = 20.0
 
+#: Pose and canny keep only the uint8 frames plus one working copy and load ONNX Runtime
+#: instead of torch: a much smaller base and slope. Not fitted — an upper bound by
+#: construction (3 B RGB frame + 1 B output/working row), see `estimate_host_bytes`.
+HOST_BASE_BYTES_LIGHT = int(0.75 * 2**30)
+HOST_BYTES_PER_PIXEL_FRAME_LIGHT = 4.0
+
 #: Refuse when the estimate exceeds this share of physical RAM. Half, not 90 %: the
 #: OS, the browser and the GPU driver (unified memory on Apple Silicon) all need room.
 HOST_RAM_BUDGET_RATIO = 0.5
@@ -40,9 +46,11 @@ def processing_max_res(width: int, height: int, input_size: int = 518) -> int:
     return int(round(scaled / 2) * 2)
 
 
-def estimate_host_bytes(frames: int, proc_w: int, proc_h: int) -> int:
+def estimate_host_bytes(frames: int, proc_w: int, proc_h: int, control: str = "depth") -> int:
     """Peak host RSS for a run: fixed base plus a per-pixel-frame slope (see constants)."""
-    return HOST_BASE_BYTES + int(frames * proc_w * proc_h * HOST_BYTES_PER_PIXEL_FRAME)
+    if control == "depth":
+        return HOST_BASE_BYTES + int(frames * proc_w * proc_h * HOST_BYTES_PER_PIXEL_FRAME)
+    return HOST_BASE_BYTES_LIGHT + int(frames * proc_w * proc_h * HOST_BYTES_PER_PIXEL_FRAME_LIGHT)
 
 
 def physical_ram_bytes() -> int:
@@ -63,17 +71,18 @@ def physical_ram_bytes() -> int:
     return 16 * 2**30
 
 
-def memory_verdict(frames: int, proc_w: int, proc_h: int, ram_bytes: int | None = None) -> dict:
+def memory_verdict(frames: int, proc_w: int, proc_h: int, ram_bytes: int | None = None, control: str = "depth") -> dict:
     """`{"estimate", "budget", "ok", "max_frames_ok"}` — the CLI turns this into text."""
     ram = ram_bytes if ram_bytes is not None else physical_ram_bytes()
     budget = int(ram * HOST_RAM_BUDGET_RATIO)
-    est = estimate_host_bytes(frames, proc_w, proc_h)
-    per_frame = max(1, estimate_host_bytes(1, proc_w, proc_h) - HOST_BASE_BYTES)
+    base = HOST_BASE_BYTES if control == "depth" else HOST_BASE_BYTES_LIGHT
+    est = estimate_host_bytes(frames, proc_w, proc_h, control)
+    per_frame = max(1, estimate_host_bytes(1, proc_w, proc_h, control) - base)
     return {
         "estimate": est,
         "budget": budget,
         "ok": est <= budget,
-        "max_frames_ok": max(1, (budget - HOST_BASE_BYTES) // per_frame),
+        "max_frames_ok": max(1, (budget - base) // per_frame),
     }
 
 

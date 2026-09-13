@@ -1,7 +1,7 @@
 """Video in / video out.
 
 Reading uses OpenCV (no decord dependency — decord has no arm64 macOS wheels).
-Writing pipes raw 8-bit grey frames into ffmpeg. We deliberately do not go through
+Writing pipes raw 8-bit grey (depth, canny) or RGB (skeleton) frames into ffmpeg. We deliberately do not go through
 imageio's writer: we need explicit control over pixel format, GOP length and CRF,
 because the output is a *control signal*, not a video for humans.
 """
@@ -127,20 +127,50 @@ def write_gray_video(
     becomes jitter in the generated clip. Measured cost is small (~0.5–1 Mbps at 720p).
     A key frame every `keyint_seconds` lets downstream tools cut the clip anywhere.
     """
-    # Accept either a whole [T, H, W] array or a lazy frame iterator (with `size`), so
-    # the caller can upsample frame by frame instead of materialising the full-res clip.
-    if isinstance(gray, np.ndarray):
-        if gray.ndim != 3 or gray.dtype != np.uint8:
-            raise ValueError(f"expected uint8 [T, H, W], got {gray.shape} {gray.dtype}")
-        h, w = gray.shape[1], gray.shape[2]
-        frames: Iterable[np.ndarray] = gray
+    return _write_video(gray, path, fps, channels=1, crf=crf, keyint_seconds=keyint_seconds, size=size)
+
+
+def write_rgb_video(
+    rgb: np.ndarray | Iterable[np.ndarray],
+    path: str | Path,
+    fps: float,
+    *,
+    crf: int = 12,
+    keyint_seconds: float = 2.0,
+    size: tuple[int, int] | None = None,
+) -> Path:
+    """Encode uint8 `[T, H, W, 3]` RGB as H.264 yuv420p — the skeleton video. Same
+    encoder settings as the grey writer; the thin coloured limbs on black are the content
+    x264 smears first at a stingy CRF, so 12 stays."""
+    return _write_video(rgb, path, fps, channels=3, crf=crf, keyint_seconds=keyint_seconds, size=size)
+
+
+def _write_video(
+    data: np.ndarray | Iterable[np.ndarray],
+    path: str | Path,
+    fps: float,
+    *,
+    channels: int,
+    crf: int,
+    keyint_seconds: float,
+    size: tuple[int, int] | None,
+) -> Path:
+    # Accept either a whole array or a lazy frame iterator (with `size`), so the caller
+    # can produce frames one at a time instead of materialising the full-res clip.
+    nd = 3 if channels == 1 else 4
+    if isinstance(data, np.ndarray):
+        if data.ndim != nd or data.dtype != np.uint8 or (channels == 3 and data.shape[-1] != 3):
+            raise ValueError(f"expected uint8 [T, H, W{', 3' if channels == 3 else ''}], got {data.shape} {data.dtype}")
+        h, w = data.shape[1], data.shape[2]
+        frames: Iterable[np.ndarray] = data
     else:
         if size is None:
             raise ValueError("size=(h, w) is required when passing a frame iterator")
         h, w = size
-        frames = gray
+        frames = data
     if h % 2 or w % 2:
         raise ValueError("frame size must be even for yuv420p; use targets.fit_dimensions first")
+    expect = (h, w) if channels == 1 else (h, w, 3)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     cmd = [
@@ -151,7 +181,7 @@ def write_gray_video(
         "-f",
         "rawvideo",
         "-pix_fmt",
-        "gray",
+        "gray" if channels == 1 else "rgb24",
         "-s",
         f"{w}x{h}",
         "-r",
@@ -182,8 +212,8 @@ def write_gray_video(
         # intermediate bytes object. BrokenPipe means ffmpeg died early; its stderr
         # (read below) carries the real reason, so swallow the pipe error here.
         for frame in frames:
-            if frame.shape != (h, w) or frame.dtype != np.uint8:
-                raise ValueError(f"frame {frame.shape} {frame.dtype} does not match {(h, w)} uint8")
+            if frame.shape != expect or frame.dtype != np.uint8:
+                raise ValueError(f"frame {frame.shape} {frame.dtype} does not match {expect} uint8")
             proc.stdin.write(np.ascontiguousarray(frame).tobytes())
     except BrokenPipeError:
         pass

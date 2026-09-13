@@ -3,7 +3,7 @@
 Why not Playwright: it downloads its own browser; Chrome is already installed and
 `websockets` is enough to talk to it. Usage (server already running on --url):
 
-    python scripts/shoot_web_ui.py --video 走廊武打.mp4 --out docs/img/web_ui.jpg
+    python scripts/shoot_web_ui.py --video 走廊武打.mp4 --out docs/img/web_ui.jpg --control pose
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ import websockets
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 
-async def shoot(url: str, video: Path, out: Path, width: int, height: int, lang: str) -> None:
+async def shoot(url: str, video: Path, out: Path, width: int, height: int, lang: str, control: str) -> None:
     port = 9333
     proc = subprocess.Popen(
         [
@@ -86,6 +86,8 @@ async def shoot(url: str, video: Path, out: Path, width: int, height: int, lang:
                 if await js("!document.getElementById('players').hidden"):
                     break
                 await asyncio.sleep(0.2)
+            await js(f"document.querySelector('#control button[data-v=\"{control}\"]').click()")
+            await asyncio.sleep(0.3)
             await js("document.getElementById('run').click()")
             for _ in range(600):
                 if await js("!document.getElementById('result').hidden"):
@@ -110,8 +112,9 @@ def main() -> None:
     ap.add_argument("--width", type=int, default=1360)
     ap.add_argument("--height", type=int, default=980)
     ap.add_argument("--lang", choices=["zh", "en"], default="zh")
+    ap.add_argument("--control", choices=["depth", "pose", "canny"], default="depth")
     a = ap.parse_args()
-    asyncio.run(shoot(a.url, a.video, a.out, a.width, a.height, a.lang))
+    asyncio.run(shoot(a.url, a.video, a.out, a.width, a.height, a.lang, a.control))
 
 
 if __name__ == "__main__":

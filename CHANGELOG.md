@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.5.0 — 2026-09-14
+- **Skeleton output — `--control pose`** (closes #6). DWPose (YOLOX-L person detector + RTMPose
+  whole-body estimator, Apache-2.0 code and weights) in ONNX Runtime, drawn in the OpenPose
+  layout the video ControlNets were trained on: 18 body joints + 21-point hands, faces off by
+  default. Across frames: identity tracking (IoU), visibility hysteresis (on > 0.3, off < 0.2)
+  and a One-Euro filter per joint, so the skeleton does not flicker. `--keypoints x.json` writes
+  every skeleton (`reshot-pose/1`: stable id per person, 134 points + scores per frame).
+  `pip install "reshot[pose]"`; weights (~340 MB) download once from `yzd-v/DWPose`, or
+  `--checkpoint-dir`. Measured: 306 ms/frame on an M2 Max CPU, the 12 s demo in 90 s.
+- **`--pose-detect-every N` (default 3).** The detector is 80 % of the pose cost, so it runs every
+  third frame and the previous skeletons supply the boxes in between; a cut or an unreliable
+  skeleton re-detects at once. Against every-frame detection on the 289-frame demo: 280 frames
+  identical people count, 80 % of joints within 2 px, 91 % within 5 px, 35 % faster.
+- **Line output — `--control canny`**, thresholds `--canny LOW,HIGH`. No model.
+- `--control depth,pose,canny` writes all three in one go (`-o` a directory); one model load per kind.
+- **Web page**: a third choice, *What to make* — depth map / skeleton / lines; quality and the
+  advanced fields show only for the type they apply to; the result panel names the file, offers
+  the keypoints JSON for skeletons, and prints the prompt line for your target × type.
+- Python: `write_rgb_video`, `reshot.pose` (`PoseClip`, `skeleton.render_frame`,
+  `tracking.stabilise`), `reshot.edges.canny_frame`; `RunConfig.control` and the pose / canny fields.
+- Colab notebook and `docs/AGENT_INSTALL.md` cover the new types.
+- Pose and canny are read at the output size (no "model resolution"), with their own, much
+  smaller host-RAM estimate.
+
 ## 0.4.1 — 2026-09-14
 - **Colab notebook.** `examples/reshot_colab.ipynb` — a free GPU, upload a clip, download
   `depth.mp4`, no install. "Open in Colab" badge in both READMEs.

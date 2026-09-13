@@ -130,3 +130,85 @@ def test_bad_inputs(server):
     assert st == 400
     st, j = _post(base + "/api/jobs", b"{", "application/json")
     assert st == 400
+
+
+def _wait(base, job_id):
+    for _ in range(200):
+        _, body, _ = _get(base + f"/api/jobs/{job_id}")
+        job = json.loads(body)
+        if job["status"] in ("done", "error"):
+            return job
+        time.sleep(0.1)
+    raise AssertionError("job did not finish")
+
+
+def test_info_lists_controls(server):
+    base, _ = server
+    _, body, _ = _get(base + "/api/info")
+    info = json.loads(body)
+    assert info["controls"] == ["depth", "pose", "canny"]
+    assert isinstance(info["pose_available"], bool) and info["models_loaded"] == []
+
+
+def test_pose_job_with_keypoints_download(server, tmp_path):
+    base, _ = server
+    clip = _clip(tmp_path / "dance.mp4", frames=12)
+    body, ctype = _multipart("file", "dance.mp4", clip.read_bytes())
+    _, src = _post(base + "/api/upload", body, ctype)
+    st, j = _post(
+        base + "/api/jobs",
+        json.dumps({"source_id": src["id"], "control": "pose", "target": "h3", "pose_face": True}).encode(),
+        "application/json",
+    )
+    assert st == 200
+    job = _wait(base, j["id"])
+    assert job["status"] == "done", job
+    assert job["control"] == "pose" and job["result"]["control"] == "pose"
+    assert job["result"]["people_per_frame_max"] == 2  # the fake pose backend draws two figures
+    assert {s["tag"] for s in job["steps"]} >= {"pose", "render", "keypoints", "wrote"}
+    out = Path(job["result"]["output"])
+    assert out.name == "dance_pose_h3.mp4" and out.exists()
+    st, raw, hdr = _get(base + job["result"]["keypoints_url"] + "?download=1")
+    kp = json.loads(raw)
+    assert st == 200 and kp["format"] == "reshot-pose/1" and "attachment" in hdr["Content-Disposition"]
+    assert len(kp["frames"]) == job["result"]["frames"]
+    # the pose backend is cached for the session; depth is untouched
+    _, body, _ = _get(base + "/api/info")
+    assert json.loads(body)["models_loaded"] == ["pose"]
+
+
+def test_canny_job_needs_no_model(server, tmp_path):
+    base, _ = server
+    clip = _clip(tmp_path / "c.mp4", frames=6)
+    body, ctype = _multipart("file", "c.mp4", clip.read_bytes())
+    _, src = _post(base + "/api/upload", body, ctype)
+    st, j = _post(
+        base + "/api/jobs",
+        json.dumps({"source_id": src["id"], "control": "canny", "target": "seedance", "canny": [50, 150]}).encode(),
+        "application/json",
+    )
+    assert st == 200
+    job = _wait(base, j["id"])
+    assert job["status"] == "done", job
+    assert job["result"]["keypoints_url"] is None and Path(job["result"]["output"]).name == "c_canny_seedance.mp4"
+    assert not any(s["tag"] == "model" for s in job["steps"])
+    with pytest.raises(urllib.error.HTTPError) as ei:
+        _get(base + f"/api/keypoints/{j['id']}")
+    assert ei.value.code == 404
+
+
+def test_bad_control_and_canny_values(server, tmp_path):
+    base, _ = server
+    clip = _clip(tmp_path / "c.mp4", frames=6)
+    body, ctype = _multipart("file", "c.mp4", clip.read_bytes())
+    _, src = _post(base + "/api/upload", body, ctype)
+    st, j = _post(
+        base + "/api/jobs", json.dumps({"source_id": src["id"], "control": "hed"}).encode(), "application/json"
+    )
+    assert st == 400 and "control" in j["error"]
+    st, j = _post(
+        base + "/api/jobs",
+        json.dumps({"source_id": src["id"], "control": "canny", "canny": [300, 100]}).encode(),
+        "application/json",
+    )
+    assert st == 400
