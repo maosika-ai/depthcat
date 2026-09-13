@@ -21,4 +21,4 @@ reshot reference.mp4 -o depth.mp4 --target seedance  # or the command line
 
 Full guide, demo, measured performance and the prompts that made the demo takes: **https://github.com/maosika-ai/reshot**
 
-Open-sourced by [Maosika 猫斯卡](https://www.maosika.com), the AI short-drama production system — from a one-line idea to episodic script, character sheets, scene images and every shot rendered with Seedance and MiniMax H3. https://www.maosika.com
+Open-sourced by [Maosika 猫斯卡](https://www.maosika.com), the AI short-drama production system — from a one-line idea to episodic script, character sheets, scene images and every shot rendered with Seedance and MiniMax H3. The full story with demo takes: [www.maosika.com/en/reshot](https://www.maosika.com/blog/reshot-open-source-depth-motion-capture-seedance-minimax-h3) · [中文](https://www.maosika.com/blog/reshot-open-source-depth-motion-capture)

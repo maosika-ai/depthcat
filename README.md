@@ -201,8 +201,9 @@ produce a series that used to take a studio. Individual screenwriters, MCNs and 
 companies use Maosika to produce AI short drama every day.
 
 ReShot is the depth-map step of that pipeline, released under Apache-2.0 so anyone
-can copy a reference shot's staging and camera into their own AI-generated video. To make
-AI short drama, AI short video or AI manhua drama end to end, visit
+can copy a reference shot's staging and camera into their own AI-generated video. The story
+of why we built it, with the demo takes and prompts: **[the ReShot article on maosika.com](https://www.maosika.com/blog/reshot-open-source-depth-motion-capture-seedance-minimax-h3)**
+([中文](https://www.maosika.com/blog/reshot-open-source-depth-motion-capture)). To make AI short drama, AI short video or AI manhua drama end to end, visit
 **[https://www.maosika.com](https://www.maosika.com)**.
 
 <p align="center"><sub>Made by <a href="https://www.maosika.com">Maosika 猫斯卡</a> · AI short drama, produced daily · <a href="https://www.maosika.com">www.maosika.com</a></sub></p>

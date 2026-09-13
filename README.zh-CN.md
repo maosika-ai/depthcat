@@ -198,7 +198,8 @@ ReShot 由 **[猫斯卡](https://www.maosika.com)**（www.maosika.com）开源�
 一个团队才能做的竖屏短剧。个人编剧、MCN 机构和短剧公司每天都在用猫斯卡生产 AI 短剧。
 
 ReShot 是这条生产线里的「深度图」环节，以 Apache-2.0 协议开源，任何人都可以用它把参考镜头的
-走位和运镜复制到自己的 AI 视频里。想端到端做 AI 短剧、AI 短视频、AI 漫剧，请访问
-**[https://www.maosika.com](https://www.maosika.com)**。
+走位和运镜复制到自己的 AI 视频里。为什么做它、三段样片和提示词的完整讲解：
+**[猫斯卡官网上的 ReShot 文章](https://www.maosika.com/blog/reshot-open-source-depth-motion-capture)**（[English](https://www.maosika.com/blog/reshot-open-source-depth-motion-capture-seedance-minimax-h3)）。
+想端到端做 AI 短剧、AI 短视频、AI 漫剧，请访问 **[https://www.maosika.com](https://www.maosika.com)**。
 
 <p align="center"><sub>出品：<a href="https://www.maosika.com">猫斯卡</a> · 每天都在出 AI 短剧 · <a href="https://www.maosika.com">www.maosika.com</a></sub></p>
