@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.1 — 2026-09-14
+- **Hugging Face Space that runs.** [huggingface.co/spaces/netbee/reshot](https://huggingface.co/spaces/netbee/reshot)
+  on ZeroGPU: drop a clip up to 15 s, pick the target model, get `depth.mp4` and the prompt line
+  back — no install. Source in `demo/space/`.
+- `run(cfg, backend=...)` accepts a pre-built backend, so a resident process (the Space, a server)
+  loads the weights once instead of per clip. Without it nothing changes.
+- Discussions are open; the README has a Community section.
+
 ## 0.4.0 — 2026-09-12
 - **Web page.** `reshot` with no arguments (or `reshot web`) starts a local UI in the browser:
   drop a clip, pick the target model and quality, run, preview reference and depth side by

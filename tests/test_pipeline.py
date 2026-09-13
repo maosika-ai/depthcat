@@ -162,3 +162,16 @@ def test_model_input_resolution_matches_the_vendored_resize():
     assert mir(720, 1280, 364) == (364, 644) and mir(720, 1280, 518) == (518, 924)
     assert mir(1024, 768, 364) == (490, 364) and mir(1024, 768, 518) == (686, 518)
     assert mir(1080, 1080, 518) == (518, 518)
+
+
+def test_run_reuses_a_prebuilt_backend(tmp_path, monkeypatch):
+    """A resident process passes its own backend: run() must use it and must not build one."""
+    from reshot import pipeline
+    from reshot.backends import get_backend
+
+    monkeypatch.setattr(pipeline, "_make_backend", lambda cfg: pytest.fail("run() built a backend it was given"))
+    shared = get_backend("fake")
+    src = _clip(tmp_path / "src.mp4")
+    a = run(RunConfig(input=src, output=tmp_path / "a.mp4", backend="fake", target="seedance"), backend=shared)
+    b = run(RunConfig(input=src, output=tmp_path / "b.mp4", backend="fake", target="seedance"), backend=shared)
+    assert a.output.exists() and b.output.exists() and a.frames == b.frames

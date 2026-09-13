@@ -35,6 +35,11 @@
 <video class="demo" src="demo.mp4" poster="demo.gif" autoplay muted loop playsinline></video>
 <p class="cap">top: the reference and its depth map · bottom: three takes generated from that depth map — two women, one rabbit; same moves, same camera<br><span class="zh">上排：参考片和它的深度图 · 下排：用这张深度图生成的三段片——两个女人、一只兔子；动作一样，镜头一样</span></p>
 
+<div class="row">
+  <a class="btn" href="https://huggingface.co/spaces/netbee/reshot">Try it in your browser — free GPU, no install · 在线试用，免安装</a>
+</div>
+<p class="cap">Drop a clip up to 15 s, get <code>depth.mp4</code> and the prompt line back in about 30 seconds.<br><span class="zh">拖一段 15 秒以内的视频进去，30 秒左右拿到 depth.mp4 和提示词。</span></p>
+
 <pre><code>pip install reshot
 reshot                     # opens a page in your browser — drop the clip in, click, download
 reshot reference.mp4 -o depth.mp4 --target seedance     # or the command line</code></pre>
@@ -43,7 +48,7 @@ reshot reference.mp4 -o depth.mp4 --target seedance     # or the command line</c
 <p class="cap">The web page (<code>reshot</code> with nothing after it): everything runs on your own computer; the prompt line for Seedance or MiniMax H3 is right there to copy.<br><span class="zh">网页版（只敲 <code>reshot</code>）：全部在你自己电脑上跑；给 Seedance / MiniMax H3 的提示词就在旁边，点一下复制。</span></p>
 
 <div class="row">
-  <a class="btn" href="https://github.com/maosika-ai/reshot">GitHub · code &amp; docs</a>
+  <a class="ghost" href="https://github.com/maosika-ai/reshot">GitHub · code &amp; docs</a>
   <a class="ghost" href="https://github.com/maosika-ai/reshot/blob/main/docs/USAGE.md">User guide</a>
   <a class="ghost" href="https://github.com/maosika-ai/reshot/blob/main/docs/USAGE.zh-CN.md">中文手册</a>
   <a class="ghost" href="https://www.maosika.com">Maosika 猫斯卡 · make AI short drama</a>
@@ -102,5 +107,5 @@ reshot reference.mp4 -o depth.mp4 --target seedance     # or the command line</c
 <p><a class="btn" href="https://www.maosika.com">Make AI short drama at maosika.com · 去猫斯卡做 AI 短剧</a></p>
 </div>
 
-<footer>Apache-2.0 · model code vendored from <a href="https://github.com/DepthAnything/Video-Depth-Anything">Video Depth Anything</a> (CVPR 2025) · built at <a href="https://www.maosika.com">Maosika 猫斯卡 · www.maosika.com</a>. This Space is a landing page; the tool runs locally.</footer>
+<footer>Apache-2.0 · model code vendored from <a href="https://github.com/DepthAnything/Video-Depth-Anything">Video Depth Anything</a> (CVPR 2025) · built at <a href="https://www.maosika.com">Maosika 猫斯卡 · www.maosika.com</a>. Try it at <a href="https://huggingface.co/spaces/netbee/reshot">spaces/netbee/reshot</a>, or run it locally with <code>pip install reshot</code>.</footer>
 </main></body></html>

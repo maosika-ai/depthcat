@@ -1,0 +1,5 @@
+torch==2.13.0
+torchvision==0.28.0
+reshot[ffmpeg] @ git+https://github.com/maosika-ai/reshot@v0.4.1
+gradio>=5,<6
+spaces

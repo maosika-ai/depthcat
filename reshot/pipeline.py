@@ -176,8 +176,16 @@ def run_many(cfgs: list[RunConfig], reporter: Reporter | None = None) -> list[Ru
     return results
 
 
-def run(cfg: RunConfig, reporter: Reporter | None = None) -> RunResult:
-    """Execute a full run. See module docstring."""
+def run(cfg: RunConfig, reporter: Reporter | None = None, *, backend=None) -> RunResult:
+    """Execute a full run. See module docstring.
+
+    `backend`: an already-built `DepthBackend` to run on. A long-lived process (a server,
+    a Hugging Face Space) builds one at startup and passes it here so the weights are not
+    reloaded per clip; the caller then owns its lifetime and nothing is released on return.
+    Without it, a backend is built for this run and torn down afterwards, as before.
+    """
+    if backend is not None:
+        return _run_one(cfg, reporter or NullReporter(), backend, cfg.backend)
     backend, backend_name = _make_backend(cfg)
     try:
         return _run_one(cfg, reporter or NullReporter(), backend, backend_name)
