@@ -85,7 +85,7 @@ pip install "reshot[pose]"        # 需要 PATH 里有 ffmpeg；没有就装 "re
 
 ```bash
 pip install modelscope
-modelscope download --model maosika/reshot weights/video_depth_anything_vits.pth weights/yolox_l.onnx weights/dw-ll_ucoco_384.onnx --local_dir ./reshot-weights
+modelscope download maosika/reshot weights/video_depth_anything_vits.pth weights/yolox_l.onnx weights/dw-ll_ucoco_384.onnx --local-dir ./reshot-weights
 reshot 参考片.mp4 -o 深度图.mp4 --checkpoint ./reshot-weights/weights/video_depth_anything_vits.pth
 reshot 参考片.mp4 -o 骨架.mp4 --control pose --checkpoint-dir ./reshot-weights/weights
 ```
