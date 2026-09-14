@@ -79,13 +79,22 @@ ReShot 吃进一个 `.mp4`，吐出一个 `.mp4`。输出是控制视频，三�
 pip install "reshot[pose]"        # 需要 PATH 里有 ffmpeg；没有就装 "reshot[pose,ffmpeg]"
 ```
 
-模型权重首次运行自动下载（深度 111 MB，骨架 340 MB）。国内先设一个镜像：
+模型权重首次运行自动下载（深度 111 MB，骨架 340 MB）。国内两种办法，任选一种：
+
+**直接从这个魔搭仓库拿权重**（`weights/` 目录，和 Hugging Face 上的原文件逐字节相同，SHA-256 已核对），然后用参数指过去，完全不走 Hugging Face：
+
+```bash
+pip install modelscope
+modelscope download --model maosika/reshot weights/video_depth_anything_vits.pth weights/yolox_l.onnx weights/dw-ll_ucoco_384.onnx --local_dir ./reshot-weights
+reshot 参考片.mp4 -o 深度图.mp4 --checkpoint ./reshot-weights/weights/video_depth_anything_vits.pth
+reshot 参考片.mp4 -o 骨架.mp4 --control pose --checkpoint-dir ./reshot-weights/weights
+```
+
+或者设一个 Hugging Face 镜像，让 `reshot` 自己下：
 
 ```bash
 export HF_ENDPOINT=https://hf-mirror.com
 ```
-
-也可以把权重放本地，`--checkpoint 深度权重.pth`、`--checkpoint-dir 骨架权重目录/` 直接指过去，不走网络。
 
 用 Claude Code、Codex、Cursor 之类的 AI 编程工具？把下面这段粘给它，它会替你装好、验显卡、跑一段测试片：
 
@@ -185,11 +194,13 @@ run(RunConfig(input=Path("参考片.mp4"), output=Path("深度图.mp4"), target=
 
 ## 模型与协议
 
-| 用途 | 模型 | 协议 |
-|---|---|---|
-| 深度图 | Video Depth Anything **Small**（字节跳动，CVPR 2025，28M 参数） | Apache-2.0 |
-| 骨架 | DWPose（YOLOX-L 检人 + RTMPose 全身估点，ONNX） | Apache-2.0 |
-| 线稿 | OpenCV Canny | 不用模型 |
+| 用途 | 模型 | 本仓库里的文件 | 协议 |
+|---|---|---|---|
+| 深度图 | Video Depth Anything **Small**（字节跳动，CVPR 2025，28M 参数） | `weights/video_depth_anything_vits.pth` | Apache-2.0 |
+| 骨架 | DWPose（YOLOX-L 检人 + RTMPose 全身估点，ONNX） | `weights/yolox_l.onnx`、`weights/dw-ll_ucoco_384.onnx` | Apache-2.0 |
+| 线稿 | OpenCV Canny | 不用模型 | – |
+
+`weights/` 是原作者发布文件的镜像，未做任何改动（来源 `depth-anything/Video-Depth-Anything-Small` 与 `yzd-v/DWPose`，镜像脚本与校验值在 GitHub 仓库 `scripts/mirror_weights_to_modelscope.py`）。
 
 ReShot 本身 Apache-2.0，默认深度模型和骨架模型（代码和权重）也都是。用在产品、流水线、服务里都行。更大的研究用深度权重（Base、Large）是 CC-BY-NC，不主动指定不会加载。
 
