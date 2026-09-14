@@ -32,8 +32,8 @@ ReShot takes an `.mp4` in and writes an `.mp4` out. The output is a control vide
 | **`canny`** | white edge lines on black | composition and outlines | colour and shading — but *not* the outline of a face or a costume | when you want the picture's layout, not only the people |
 
 <p align="center"><img src="docs/img/step1_reference.jpg" width="300" alt="reference frame"> <img src="docs/img/step2_depth.jpg" width="300" alt="the same frame as a depth map"> <img src="docs/img/step2_pose.jpg" width="300" alt="the same frame as a skeleton"></p>
-<p align="center"><img src="docs/demo-controls.gif" width="864" alt="the corridor fight as reference, depth map and skeleton, playing side by side"></p>
-<p align="center"><sub>Reference · depth map · skeleton, the same 12 seconds. Four stills at full size: <a href="docs/img/controls_strip.jpg">controls_strip.jpg</a>.</sub></p>
+<p align="center"><img src="docs/demo-pose.gif" width="720" alt="the fight scene, its skeleton, and three new takes generated from the skeleton"></p>
+<p align="center"><sub>The same demo made from the <b>skeleton</b> instead of the depth map. Top: the reference and its skeleton video. Bottom: three takes generated on MiniMax H3 from that skeleton — same prompts and character sheets as the depth takes, only <code>&lt;Video 1&gt;</code> swapped. <a href="docs/demo-pose.mp4">Full-resolution clip</a> · prompts with seeds in <a href="docs/prompts/">docs/prompts/</a> (<code>*_pose.txt</code>). Four stills of reference · depth · skeleton: <a href="docs/img/controls_strip.jpg">controls_strip.jpg</a>.</sub></p>
 
 You give that video to your video model as the reference and describe the people and the look in the prompt. The model takes the moves from the video and everything else from your words.
 
@@ -134,7 +134,7 @@ Left to right: [Jiang Xue](docs/prompts/take1_jiangxue_armor.txt) in bronze armo
 
 **Doesn't:** faces (use a character sheet), clothes, lighting, colour, props in detail, and anything smaller than a hand. Those come from your prompt and your reference images.
 
-**Depth or pose?** Depth carries the whole picture — where the walls are, who is bigger, a pipe being torn off — and works on anything, people or not. Pose carries only the people, but every limb and finger exactly, and nothing of their body shape or the set. Use pose for dance and martial arts, depth for everything else; when in doubt make both (`--control depth,pose`) and see which one the model follows better.
+**Depth or pose?** Depth carries the whole picture — where the walls are, who is bigger, a pipe being torn off — and works on anything, people or not. Pose carries only the people, but every limb and finger exactly, and nothing of their body shape or the set. Use pose for dance and martial arts, depth for everything else; when in doubt make both (`--control depth,pose`) and see which one the model follows better. We re-made the three demo takes on MiniMax H3 with the skeleton as `<Video 1>` (same prompts, same sheets): all three reproduce the six beats like the depth takes, and the throw reads more clearly from the skeleton — see the second GIF above. One take per condition with different seeds, so read it as "pose works as a reference video too", not "pose is better".
 
 We tested that on MiniMax H3 with the three demo takes: same prompts, same character sheets, only `<Video 1>` swapped from the depth map to the skeleton video (and the two sentences that describe it). All three skeleton takes reproduce the six beats — close-up, brawl, the throw, the panel, the walk out past the fallen guards — at the same level as the depth takes; the throw reads more clearly from the skeleton. One take per condition, different seeds, so read it as "pose works as a reference video too", not as "pose is better". The prompts with seeds are in [`docs/prompts/`](docs/prompts/) (`*_pose.txt`).
 

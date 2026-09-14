@@ -32,8 +32,8 @@ ReShot 吃进一个 `.mp4`，吐出一个 `.mp4`。输出是控制视频，三�
 | **`canny`** | 黑底白线的边缘图 | 构图和轮廓 | 颜色和明暗——但脸型和服装的轮廓**留着** | 想要整个画面的布局、不只是人的时候 |
 
 <p align="center"><img src="docs/img/step1_reference.jpg" width="300" alt="参考片的一帧"> <img src="docs/img/step2_depth.jpg" width="300" alt="同一帧的深度图"> <img src="docs/img/step2_pose.jpg" width="300" alt="同一帧的骨架"></p>
-<p align="center"><img src="docs/demo-controls.gif" width="864" alt="走廊武打的参考片、深度图和骨架并排播放"></p>
-<p align="center"><sub>参考片 · 深度图 · 骨架，同一段 12 秒。四张全尺寸静帧：<a href="docs/img/controls_strip.jpg">controls_strip.jpg</a>。</sub></p>
+<p align="center"><img src="docs/demo-pose.gif" width="720" alt="武打参考片、它的骨架、用骨架生成的三段新片"></p>
+<p align="center"><sub>同一个演示，参考换成<b>骨架</b>。上排：参考片和它的骨架视频。下排：MiniMax H3 用这段骨架出的三段片——提示词和定妆图与深度版完全一样，只换了 <code>&lt;Video 1&gt;</code>。<a href="docs/demo-pose.mp4">高清原片</a> · 带 seed 的提示词在 <a href="docs/prompts/">docs/prompts/</a>（<code>*_pose.txt</code>）。参考 · 深度 · 骨架四张静帧：<a href="docs/img/controls_strip.jpg">controls_strip.jpg</a>。</sub></p>
 
 你把这段视频当参考交给视频模型，提示词里写人物和画风。动作和镜头模型从片里读，其余全听你的。
 
@@ -134,7 +134,7 @@ is transferred onto <Subject 1> and <Subject 2>; its grey depth look is not tran
 
 **不能：** 脸（用定妆图）、衣服、光线、颜色、道具细节，以及比手还小的东西。这些全靠你的提示词和参考图。
 
-**深度图还是骨架？** 深度图带走整个画面——墙在哪、谁更大、一根管子被扯下来——人和非人都管用。骨架只带人，但每根肢体每根手指都准，体型和场景一点不带。跳舞、武打选骨架，其余选深度图；拿不准就两个都出（`--control depth,pose`），看模型跟哪个跟得更好。
+**深度图还是骨架？** 深度图带走整个画面——墙在哪、谁更大、一根管子被扯下来——人和非人都管用。骨架只带人，但每根肢体每根手指都准，体型和场景一点不带。跳舞、武打选骨架，其余选深度图；拿不准就两个都出（`--control depth,pose`），看模型跟哪个跟得更好。我们在 MiniMax H3 上把演示的三段片用骨架当 `<Video 1>` 重出了一遍（提示词、定妆图完全一样）：三条都复现了六个节拍，和深度版一个水平，过肩摔那一镜骨架版更清楚——见上面第二张动图。每种条件只出了一条、seed 不同，所以只能读成「骨架当参考视频也行」，不是「骨架更好」。
 
 我们在 MiniMax H3 上用演示的三段片做了实测：提示词、定妆图完全一样，只把 `<Video 1>` 从深度图换成骨架视频（连带改了描述它的两句话）。三条骨架版都复现了六个节拍——特写、群殴、过肩摔、撞控制台、跨过倒地守卫走出门——和深度版一个水平，过肩摔那一镜骨架版更清楚。每种条件只出了一条、seed 不同，所以只能读成「骨架当参考视频也行」，不能读成「骨架更好」。带 seed 的提示词在 [`docs/prompts/`](docs/prompts/)（`*_pose.txt`）。
 

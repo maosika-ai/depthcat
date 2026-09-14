@@ -1,5 +1,4 @@
-# MiniMax H3, <Video 1> = the OpenPose skeleton video (reshot --control pose --target h3, scaled to 320x176), seed 1488156354, 12 s 16:9 720p, 340 s on one H3 machine (2026-09-14).
-# Identical to the depth-map take except the two sentences that define <Video 1> and say its look is not to be copied.
+# MiniMax H3 · <Video 1> = the skeleton video (reshot --control pose --target h3, scaled to 320x176) · seed 327102747 · 334 s
 
 subject_definitions:
 <Subject 1> is the young woman shown in <Picture 1> and in close-up in <Picture 2>, Su Wan, an elegant beauty with black hair in a low side bun, a pearl earring and a dark green velvet qipao; both pictures are used only for her appearance and her face must match <Picture 2> exactly.

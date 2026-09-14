@@ -24,6 +24,9 @@
 - Pose and canny are read at the output size (no "model resolution"), with their own, much
   smaller host-RAM estimate.
 - Verified on MiniMax H3: the three demo takes re-made with the skeleton as `<Video 1>` (same
+  prompts and sheets) reproduce the six beats like the depth takes — `docs/demo-pose.gif`,
+  prompts with seeds in `docs/prompts/*_pose.txt`.
+- Verified on MiniMax H3: the three demo takes re-made with the skeleton as `<Video 1>` (same
   prompts and sheets) reproduce the six beats like the depth takes; prompts + seeds in
   `docs/prompts/*_pose.txt`, comparison in `docs/img/pose_vs_depth_takes.jpg`.
 
