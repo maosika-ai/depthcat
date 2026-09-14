@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ReShot — copy the shot, not the actors · by Maosika 猫斯卡</title>
-<meta name="description" content="ReShot turns a reference video into a depth map for Seedance 2.0/2.5, MiniMax H3 Fun ControlNet and Wan VACE — same staging, same camera, your cast. Open-sourced by Maosika 猫斯卡 (www.maosika.com), the AI short-drama production system.">
+<meta name="description" content="ReShot turns a reference video into a depth map, an OpenPose skeleton or canny lines for Seedance 2.0/2.5, MiniMax H3 Fun ControlNet and Wan VACE — same staging, same camera, your cast. Open-sourced by Maosika 猫斯卡 (www.maosika.com), the AI short-drama production system.">
 <link rel="canonical" href="https://huggingface.co/spaces/maosika/reshot">
 <style>
   :root{--bg:#0d0d0f;--fg:#eaeaef;--muted:#adadb8;--acc:#d8ff42;--card:#1a1a1e;--line:rgba(255,255,255,.08)}
@@ -29,10 +29,13 @@
 </head>
 <body><main>
 <h1>Re<span>Shot</span></h1>
-<p class="tag"><b>Copy the shot, not the actors.</b> ReShot turns a reference video into a depth map, so Seedance or MiniMax H3 can repeat its choreography and camera moves — with your own characters in it.<br><span class="zh"><b>复制走位，不复制演员。</b>ReShot 把参考视频变成深度图，让 Seedance 或 MiniMax H3 照着它的动作和运镜再拍一遍——人物换成你的。</span></p>
+<p class="tag"><b>Copy the shot, not the actors.</b> ReShot turns a reference video into a depth map, a skeleton or a line video, so Seedance or MiniMax H3 can repeat its choreography and camera moves — with your own characters in it.<br><span class="zh"><b>复制走位，不复制演员。</b>ReShot 把参考视频变成深度图、骨架或线稿视频，让 Seedance 或 MiniMax H3 照着它的动作和运镜再拍一遍——人物换成你的。</span></p>
 <p class="zh"><sub>Open-sourced by <a href="https://www.maosika.com">Maosika 猫斯卡</a>, the AI short-drama production system · 由 AI 短剧生产系统 <a href="https://www.maosika.com">猫斯卡</a> 开源</sub></p>
 
-<video class="demo" src="demo.mp4" poster="demo.gif" autoplay muted loop playsinline></video>
+<video class="demo" src="demo-pose.mp4" poster="demo-pose.gif" autoplay muted loop playsinline></video>
+<p class="cap"><b>New in 0.5: skeletons.</b> top: the reference and its skeleton · bottom: three takes generated on MiniMax H3 from that skeleton — same prompts and sheets as the depth-map takes, only the reference swapped<br><span class="zh"><b>0.5 新增：骨架。</b>上排：参考片和它的骨架 · 下排：MiniMax H3 用这段骨架出的三段片——提示词和定妆图与深度版完全一样，只换了参考</span></p>
+
+<video class="demo" src="demo.mp4" poster="demo.gif" muted loop playsinline controls></video>
 <p class="cap">top: the reference and its depth map · bottom: three takes generated from that depth map — two women, one rabbit; same moves, same camera<br><span class="zh">上排：参考片和它的深度图 · 下排：用这张深度图生成的三段片——两个女人、一只兔子；动作一样，镜头一样</span></p>
 
 <div class="row">
@@ -40,11 +43,12 @@
 </div>
 <p class="cap">Open the notebook, upload a clip, run, download <code>depth.mp4</code> with the prompt line for your video model.<br><span class="zh">打开笔记本，上传视频，运行，下载 depth.mp4 和给视频模型的提示词。</span></p>
 
-<pre><code>pip install reshot
-reshot                     # opens a page in your browser — drop the clip in, click, download
-reshot reference.mp4 -o depth.mp4 --target seedance     # or the command line</code></pre>
+<pre><code>pip install "reshot[pose]"
+reshot                     # opens a page in your browser — pick depth map / skeleton / lines, drop the clip in, download
+reshot reference.mp4 -o depth.mp4 --target seedance     # or the command line
+reshot reference.mp4 -o pose.mp4  --target h3 --control pose</code></pre>
 
-<img class="demo" src="web_ui.jpg" alt="the ReShot web page: reference clip and depth map side by side, target and quality on the right" loading="lazy">
+<img class="demo" src="web_ui.jpg" alt="the ReShot web page: reference clip and skeleton side by side; what to make, target and quality on the right" loading="lazy">
 <p class="cap">The web page (<code>reshot</code> with nothing after it): everything runs on your own computer; the prompt line for Seedance or MiniMax H3 is right there to copy.<br><span class="zh">网页版（只敲 <code>reshot</code>）：全部在你自己电脑上跑；给 Seedance / MiniMax H3 的提示词就在旁边，点一下复制。</span></p>
 
 <div class="row">
@@ -59,7 +63,7 @@ reshot reference.mp4 -o depth.mp4 --target seedance     # or the command line</c
 <p class="zh">你看中了一段片子，那场打戏、那段舞、那个运镜正是你的 AI 视频想要的。直接当参考视频喂给模型，它会把脸、衣服、画风连同动作一起抄走，片子里是真人还可能过不了审；改用文字描述动作，模型每次给你的打法都不一样。</p>
 
 <h2>What ReShot does <span class="zh">/ ReShot 做什么</span></h2>
-<p>An <code>.mp4</code> in, an <code>.mp4</code> out. The output is a depth-map video: every frame grey, near is white, far is black. It keeps where everyone stands, how big they are, how they move and how the camera moves; it throws away faces, clothes, lighting and style. Give the grey video to your model as the reference and describe the people and the look in the prompt.</p>
+<p>An <code>.mp4</code> in, an <code>.mp4</code> out. <b>Depth map</b> (default): every frame grey, near is white, far is black — keeps where everyone stands, how big they are, how they move and how the camera moves; throws away faces, clothes, lighting and style. <b>Skeleton</b> (<code>--control pose</code>, 0.5+): OpenPose-style stick figures from DWPose, hands included, faces not, tracked and smoothed across frames so they do not flicker — every limb exactly, nothing of body shape or set; the one for dance and fights. <b>Lines</b> (<code>--control canny</code>): white edges on black, no model. Give the video to your model as the reference and describe the people and the look in the prompt.</p>
 <p class="zh">吃进一个 mp4，吐出一个 mp4。输出是深度图视频：每帧都是灰的，近白远黑。留下谁站在哪、谁大谁小、怎么动、镜头怎么走；扔掉脸、衣服、光线、画风。把灰片当参考视频交给模型，提示词里写人物和画风。</p>
 
 <h2>How to use it <span class="zh">/ 怎么用</span></h2>
@@ -73,14 +77,15 @@ reshot reference.mp4 -o depth.mp4 --target seedance     # or the command line</c
 <table>
 <tr><th><code>--target</code></th><th>fps</th><th>size</th><th>for</th></tr>
 <tr><td><b>seedance</b></td><td>24</td><td>×16, ≥ 407,696 px, ≤ 15 s</td><td><b>Seedance 2.0 / 2.5</b> — attach as a reference video, prompt <code>参考@视频1的动作与运镜…</code>. Meets the official reference-video spec (24 fps, H.264, size floor) out of the box.</td></tr>
-<tr><td>h3</td><td>24</td><td>×32, ≤ 15 s</td><td><a href="https://huggingface.co/alibaba-pai/MiniMax-H3-Fun-Controlnet-Union">MiniMax H3 Fun ControlNet</a> — depth condition</td></tr>
+<tr><td>h3</td><td>24</td><td>×32, ≤ 15 s</td><td><a href="https://huggingface.co/alibaba-pai/MiniMax-H3-Fun-Controlnet-Union">MiniMax H3 Fun ControlNet</a> — depth / pose / canny condition, or reference video</td></tr>
 <tr><td>wan</td><td>16</td><td>×16</td><td>Wan 2.1 VACE (values from the docs, not yet verified end-to-end)</td></tr>
-<tr><td>none</td><td>source</td><td>even</td><td>any depth ControlNet</td></tr>
+<tr><td>none</td><td>source</td><td>even</td><td>any depth / pose / canny ControlNet</td></tr>
 </table>
 
 <h2>Steady by design. <span class="zh">/ 稳，是设计出来的</span></h2>
 <table>
 <tr><td>Temporal consistency</td><td>a native video depth model — 32-frame windows, overlap, keyframe alignment — so walls don't breathe and floors don't flicker</td></tr>
+<tr><td>Skeletons that hold still</td><td>identity tracking across frames (box IoU), visibility hysteresis (a joint stays until its score drops well below the draw threshold), a One-Euro filter per joint — the three flickers a per-frame estimator has, gone</td></tr>
 <tr><td>Normalisation</td><td>once over the whole clip, never per frame</td></tr>
 <tr><td>Frame rate</td><td>by timestamp: 30 → 24 really is 24</td></tr>
 <tr><td>Output size</td><td>cropped to the model's multiple — never padded; a black border reads to the generator as a far wall</td></tr>
@@ -104,9 +109,9 @@ reshot reference.mp4 -o depth.mp4 --target seedance     # or the command line</c
 <div class="about">
 <p>ReShot is open-sourced by <a href="https://www.maosika.com"><b>Maosika 猫斯卡</b></a> (<a href="https://www.maosika.com">www.maosika.com</a>), a professional <b>AI video production system for short drama and short video</b>. Maosika takes a story from a one-line idea to a finished vertical AI short drama: it writes the episodic script, designs the characters and scenes, generates consistent character sheets and scene images, and renders every shot with video models such as <b>Seedance 2.0 / 2.5</b> and <b>MiniMax H3</b> — a crew of digital specialists handling each step. Individual screenwriters, MCNs and short-drama companies use Maosika to produce AI short drama every day. ReShot is the depth-map step of that pipeline.</p>
 <p class="zh">ReShot 由 <a href="https://www.maosika.com"><b>猫斯卡</b></a>（www.maosika.com）开源。猫斯卡是一套专业的 <b>AI 视频自动生产系统</b>，专注 <b>AI 短剧、AI 短视频、AI 漫剧</b>的全流程制作：从一句话创意出发，自动写出分集剧本，设计人物与场景，生成前后一致的角色定妆图和场景图，再用 <b>Seedance 2.0 / 2.5</b>、<b>MiniMax H3</b> 等视频模型把每一镜拍出来——每个环节都由对应的数字专家接手。个人编剧、MCN 机构和短剧公司每天都在用猫斯卡生产 AI 短剧。ReShot 就是这条生产线里的「深度图」环节。</p>
-<p>The full story with the demo takes and prompts: <a href="https://www.maosika.com/blog/reshot-open-source-depth-motion-capture-seedance-minimax-h3">the ReShot article on maosika.com</a> · <span class="zh"><a href="https://www.maosika.com/blog/reshot-open-source-depth-motion-capture">中文文章</a></span></p>
+<p>The full story with the demo takes and prompts: <a href="https://www.maosika.com/blog/reshot-open-source-depth-motion-capture-seedance-minimax-h3">the ReShot article on maosika.com</a> · the 0.5 skeleton update: <a href="https://www.maosika.com/p/1029">English</a> · <span class="zh"><a href="https://www.maosika.com/blog/reshot-open-source-depth-motion-capture">中文文章</a> · <a href="https://www.maosika.com/p/1028">0.5 骨架更新</a></span></p>
 <p><a class="btn" href="https://www.maosika.com">Make AI short drama at maosika.com · 去猫斯卡做 AI 短剧</a></p>
 </div>
 
-<footer>Apache-2.0 · model code vendored from <a href="https://github.com/DepthAnything/Video-Depth-Anything">Video Depth Anything</a> (CVPR 2025) · built at <a href="https://www.maosika.com">Maosika 猫斯卡 · www.maosika.com</a>. Try it in <a href="https://colab.research.google.com/github/maosika-ai/reshot/blob/main/examples/reshot_colab.ipynb">Colab</a>, or run it locally with <code>pip install reshot</code>.</footer>
+<footer>Apache-2.0 · model code vendored from <a href="https://github.com/DepthAnything/Video-Depth-Anything">Video Depth Anything</a> (CVPR 2025) · built at <a href="https://www.maosika.com">Maosika 猫斯卡 · www.maosika.com</a>. Try it in <a href="https://colab.research.google.com/github/maosika-ai/reshot/blob/main/examples/reshot_colab.ipynb">Colab</a>, or run it locally with <code>pip install "reshot[pose]"</code>.</footer>
 </main></body></html>
