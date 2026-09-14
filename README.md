@@ -134,7 +134,12 @@ Left to right: [Jiang Xue](docs/prompts/take1_jiangxue_armor.txt) in bronze armo
 
 **Doesn't:** faces (use a character sheet), clothes, lighting, colour, props in detail, and anything smaller than a hand. Those come from your prompt and your reference images.
 
-**Depth or pose?** Depth carries the whole picture — where the walls are, who is bigger, a pipe being torn off — and works on anything, people or not. Pose carries only the people, but every limb and finger exactly, and nothing of their body shape or the set. Use pose for dance and martial arts, depth for everything else; when in doubt make both (`--control depth,pose`) and see which one the model follows better. One case where pose is the wrong tool: a tight close-up. The estimator still guesses where the shoulders and hips are when they are off screen, and draws them along the frame edge — depth carries a close-up faithfully. Canny carries the outline of clothes and faces too, so "copy the shot, not the actors" is only half true for it.
+**Depth or pose?** Depth carries the whole picture — where the walls are, who is bigger, a pipe being torn off — and works on anything, people or not. Pose carries only the people, but every limb and finger exactly, and nothing of their body shape or the set. Use pose for dance and martial arts, depth for everything else; when in doubt make both (`--control depth,pose`) and see which one the model follows better.
+
+We tested that on MiniMax H3 with the three demo takes: same prompts, same character sheets, only `<Video 1>` swapped from the depth map to the skeleton video (and the two sentences that describe it). All three skeleton takes reproduce the six beats — close-up, brawl, the throw, the panel, the walk out past the fallen guards — at the same level as the depth takes; the throw reads more clearly from the skeleton. One take per condition, different seeds, so read it as "pose works as a reference video too", not as "pose is better". The prompts with seeds are in [`docs/prompts/`](docs/prompts/) (`*_pose.txt`).
+
+<p align="center"><img src="docs/img/pose_vs_depth_takes.jpg" width="864" alt="reference row, then depth take and skeleton take for each of the three characters, six shots each"></p>
+<p align="center"><sub>Top: the reference. Then, per character, the take made from the depth map and the take made from the skeleton — six shots each.</sub></p> One case where pose is the wrong tool: a tight close-up. The estimator still guesses where the shoulders and hips are when they are off screen, and draws them along the frame edge — depth carries a close-up faithfully. Canny carries the outline of clothes and faces too, so "copy the shot, not the actors" is only half true for it.
 
 Things we learned making the demo:
 
